@@ -1,0 +1,3 @@
+ALTER TABLE tg_accounts DROP CONSTRAINT IF EXISTS fk_proxy;
+DROP TABLE IF EXISTS tg_accounts;
+DROP TABLE IF EXISTS proxies;
