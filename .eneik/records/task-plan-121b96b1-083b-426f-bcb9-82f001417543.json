@@ -1,0 +1,82 @@
+{
+  "epics": [
+    {
+      "existingEpicId": null,
+      "title": "Admin Dashboard Authentication and Authorization",
+      "jtbd": "When accessing the self-hosted admin panel, I want to authenticate via secure credentials, so that unauthorized users are prevented from accessing or manipulating sensitive Telegram accounts, session data, and proxies.",
+      "kanoClass": "Must-Be",
+      "cynefinDomain": "complicated",
+      "sixSigmaMetric": "Reduce unauthorized access incidents to 0",
+      "tocConstraintRef": "Admin panel access security",
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: The system must block unauthorized access to dashboard pages and API controllers and redirect to a secure login page."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement Admin Dashboard Authentication",
+          "roleTag": "BARCAN-TAG-07",
+          "jtbd": "When implementing admin authentication for this epic, I want to secure existing API controllers and frontend routes, so that unauthorized users are prevented from accessing or manipulating sensitive Telegram accounts, session data, and proxies is achieved.",
+          "acceptanceCriteria": "Given an unauthorized user accessing the admin panel URL,\nWhen they attempt to view dashboard pages or invoke API controllers,\nThen the system must block access and redirect them to a secure login page, requiring correct admin credentials to proceed.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Admin panel access security",
+          "sixSigmaMetric": "Reduce unauthorized access incidents to 0",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "f976137f-eb40-471c-873b-cf38c4b9e437",
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: The system must queue outbound messages for automatic retry upon transient connection timeouts or failures instead of dropping them."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement Outbound Message Queue and Retry Resilience",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing outbound message retry resilience for this epic, I want to add queuing and retry mechanisms to the dispatch flow, so that no messages are lost due to transient bridge disconnects is achieved.",
+          "acceptanceCriteria": "Given an outbound message dispatch request,\nWhen the JNI/JNA bridge experiences a transient connection timeout or failure,\nThen the system must queue the message for automatic retry and update its delivery status instead of silently failing or dropping the message.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Outbound message delivery reliability",
+          "sixSigmaMetric": "Reduce message loss rate due to disconnects to 0",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "3585105d-fa47-4c11-8c67-d7c0425058f6",
+      "sourceIndex": 2,
+      "requirements": [
+        "R1: The system must track outbound message counts per account and halt dispatches once the daily limit of 15-20 contacts is reached."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement Daily Outbound Messaging Rate Limiter",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing daily outbound message rate limiting for this epic, I want to enforce strict limits per account, so that our warmed-up accounts avoid getting spam-blocked or banned by Telegram flood control is achieved.",
+          "acceptanceCriteria": "Given an active Telegram account and a campaign task,\nWhen messages are dispatched,\nThen the system must track outbound counts per account and halt dispatches once the daily limit (15-20 contacts per 24h) is reached.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Telegram flood control limits",
+          "sixSigmaMetric": "Reduce spam-block incidents due to rate limits to 0",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}
