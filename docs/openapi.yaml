@@ -2,9 +2,9 @@ openapi: 3.0.3
 info:
   title: LeadGen Bot Live Chat CRM API Contract
   description: |
-    Shared API contract for Live Chat CRM (LeadGen Bot).
+    Shared API contract for Live Chat CRM and Campaigns (LeadGen Bot).
     Defines the endpoints, request/response shapes, and WebSocket real-time payloads
-    required for managing real-time conversations, manual messages, and escalations.
+    required for managing real-time conversations, manual messages, escalations, campaigns, and lead imports.
   version: 1.0.0
 servers:
   - url: /
@@ -162,6 +162,134 @@ paths:
         '500':
           description: Internal Server Error
 
+  /api/v1/campaigns:
+    post:
+      summary: Create a campaign
+      description: Creates a new cold outreach campaign with associated spintax rules.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCampaignRequest'
+      responses:
+        '201':
+          description: Campaign created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+        '400':
+          description: Invalid input or validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+
+  /api/v1/scheduler/delay:
+    post:
+      summary: Compute action delay
+      description: Computes action delay using an exponential distribution based on the provided mean delay.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '200':
+          description: Delay computed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionDelayResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/campaigns/{campaignId}/leads/import:
+    post:
+      summary: Import leads into a campaign
+      description: |
+        Imports lead target lists (@username or phone numbers) via CSV or plain text lines
+        associated with a specific campaign.
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          description: Unique identifier of the campaign
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportLeadsRequest'
+      responses:
+        '201':
+          description: Leads imported successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lead'
+        '400':
+          description: Invalid input or parsing failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+
+  /api/v1/campaigns/assignments:
+    post:
+      summary: Assign campaign to account
+      description: Validates and assigns a campaign to a specific Telegram account, rejecting accounts under 1 month old.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignAssignmentRequest'
+      responses:
+        '201':
+          description: Campaign successfully assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignAssignmentResponse'
+        '400':
+          description: Account is too young or invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     Conversation:
@@ -293,6 +421,90 @@ components:
             type: string
           description: Detailed validation/context errors
 
+    Campaign:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the campaign
+        name:
+          type: string
+          description: Name of the outreach campaign
+        spintaxRules:
+          type: string
+          nullable: true
+          description: Spintax syntax rule template (e.g. {Hi|Hello|Hey})
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the campaign was created
+
+    CreateCampaignRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Name of the outreach campaign
+        spintaxRules:
+          type: string
+          description: Spintax syntax rules for message template engine
+
+    Lead:
+      type: object
+      required:
+        - id
+        - campaignId
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the lead
+        campaignId:
+          type: string
+          format: uuid
+          description: Unique identifier of the associated campaign
+        username:
+          type: string
+          nullable: true
+          description: Telegram @username if available
+        phoneNumber:
+          type: string
+          nullable: true
+          description: Contact phone number if available
+        status:
+          type: string
+          description: Outreach status of the lead (e.g. NEW)
+        metadata:
+          type: string
+          nullable: true
+          description: Extra contextual metadata for AI rephrasing or tracking
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the lead was imported
+
+    ImportLeadsRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: |
+            Raw CSV or plain text string representing the list of leads.
+            Supports CSV with formatting: username,phoneNumber,metadata
+            Or plain text lines of single entries (starting with @ for username, or digit-only for phoneNumber).
+
     # =========================================================================
     # WebSocket typed event payload specifications (Real-time Requirements)
     # =========================================================================
@@ -364,3 +576,67 @@ components:
         status:
           type: string
           enum: [ONLINE, OFFLINE, BUSY]
+
+    ActionRequest:
+      type: object
+      required:
+        - actionType
+        - meanDelaySeconds
+      properties:
+        actionType:
+          type: string
+          description: The type of action being scheduled
+        meanDelaySeconds:
+          type: number
+          format: double
+          description: The expected mean (average) delay in seconds
+
+    ActionDelayResponse:
+      type: object
+      required:
+        - delaySeconds
+      properties:
+        delaySeconds:
+          type: number
+          format: double
+          description: The computed randomized delay in seconds
+
+    CampaignAssignmentRequest:
+      type: object
+      required:
+        - campaignId
+        - accountId
+        - accountType
+      properties:
+        campaignId:
+          type: string
+          format: uuid
+          description: Unique identifier of the campaign
+        accountId:
+          type: integer
+          format: int64
+          description: ID of the account to assign
+        accountType:
+          type: string
+          enum: [TG_ACCOUNT, WARM_UP_ACCOUNT]
+          description: Type of the account to be assigned
+
+    CampaignAssignmentResponse:
+      type: object
+      required:
+        - campaignId
+        - accountId
+        - accountType
+        - status
+      properties:
+        campaignId:
+          type: string
+          format: uuid
+        accountId:
+          type: integer
+          format: int64
+        accountType:
+          type: string
+        status:
+          type: string
+          description: Status of the assignment (e.g. ASSIGNED)
