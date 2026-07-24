@@ -10,9 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-
 @Service
 @Transactional
 public class DialogService {
@@ -50,54 +47,5 @@ public class DialogService {
 
         dialog.setAiState(newAiState);
         return dialogRepository.save(dialog);
-    }
-
-    /**
-     * Finds a dialog by its database ID.
-     */
-    public Optional<Dialog> findDialogById(Long id) {
-        return dialogRepository.findById(id);
-    }
-
-    /**
-     * Finds all dialogs in the database.
-     */
-    public List<Dialog> findAllDialogs() {
-        return dialogRepository.findAll();
-    }
-
-    /**
-     * Handles sending a manual message by a human representative.
-     * This automatically transitions the dialog's state to PAUSED.
-     */
-    public Message sendManualMessage(Long dialogId, String text) {
-        Dialog dialog = dialogRepository.findById(dialogId)
-                .orElseThrow(() -> new IllegalArgumentException("Dialog not found with id: " + dialogId));
-
-        dialog.setAiState(AiState.PAUSED);
-        dialogRepository.save(dialog);
-
-        Message message = new Message(dialog, text, SenderType.HUMAN_REPRESENTATIVE);
-        return messageRepository.save(message);
-    }
-
-    /**
-     * Handles receiving a lead reply (USER).
-     * If AI is ACTIVE, we trigger/simulate a response.
-     * If AI is PAUSED, we ignore it (no simulated response).
-     */
-    public Message receiveLeadMessage(Long dialogId, String text) {
-        Dialog dialog = dialogRepository.findById(dialogId)
-                .orElseThrow(() -> new IllegalArgumentException("Dialog not found with id: " + dialogId));
-
-        Message leadMessage = new Message(dialog, text, SenderType.USER);
-        Message savedLeadMessage = messageRepository.save(leadMessage);
-
-        if (dialog.getAiState() == AiState.ACTIVE) {
-            Message aiMessage = new Message(dialog, "AI Automated Response to: " + text, SenderType.AI);
-            messageRepository.save(aiMessage);
-        }
-
-        return savedLeadMessage;
     }
 }

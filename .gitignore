@@ -1,22 +1,15 @@
 # Eneik orchestrator internal record files - never part of product code
 .eneik/
 
-# Standard Java/Maven ignores
-target/
-*.class
-*.jar
-*.war
-*.ear
-
-# Local database and run artifacts
-data/
-*.db
-*.log
 # Node modules and build artifacts
 node_modules/
 frontend/node_modules/
 frontend/dist/
 target/
+*.class
+*.jar
+*.war
+*.ear
 *.log
 
 # Database files
