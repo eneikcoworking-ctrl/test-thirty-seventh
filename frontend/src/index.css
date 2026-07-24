@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply min-h-screen bg-[#f8f9ff] text-[#0b1c30];
+  }
+}
+
+/* AI Pulse Animation for Escalated Cards */
+@keyframes ai-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(234, 179, 8, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+}
+
+.escalated-pulse {
+  animation: ai-pulse 2s infinite;
+}
