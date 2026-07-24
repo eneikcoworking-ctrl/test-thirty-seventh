@@ -1,0 +1,155 @@
+openapi: 3.0.3
+info:
+  title: Live Chat CRM API
+  description: API for CRM unified inbox and messaging. Serves chat histories and handles manual dispatch requests.
+  version: 1.0.0
+paths:
+  /api/inbox/chats:
+    get:
+      summary: Retrieve all conversations/chats from all accounts
+      description: Returns a list of conversations across all connected Telegram accounts.
+      operationId: getInboxChats
+      responses:
+        '200':
+          description: Successfully retrieved conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/inbox/send:
+    post:
+      summary: Dispatch a manual message
+      description: Sends a manual message to a specific lead from a specific Telegram account via the Telegram layer.
+      operationId: sendManualMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualMessageRequest'
+      responses:
+        '200':
+          description: Message successfully dispatched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Conversation:
+      type: object
+      required:
+        - id
+        - telegramAccountId
+        - leadId
+        - leadUsername
+        - lastMessage
+        - lastMessageTimestamp
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier of the conversation/chat
+        telegramAccountId:
+          type: string
+          description: The ID of the connected Telegram account hosting this chat
+        leadId:
+          type: string
+          description: Unique identifier of the lead
+        leadUsername:
+          type: string
+          description: Telegram username of the lead
+        lastMessage:
+          type: string
+          description: Content of the last message in the conversation
+        lastMessageTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the last message was received or sent
+
+    ManualMessageRequest:
+      type: object
+      required:
+        - telegramAccountId
+        - leadId
+        - message
+      properties:
+        telegramAccountId:
+          type: string
+          description: ID of the Telegram account to send the message from
+        leadId:
+          type: string
+          description: ID of the lead to send the message to
+        message:
+          type: string
+          description: The text of the message to send
+
+    MessageResponse:
+      type: object
+      required:
+        - messageId
+        - telegramAccountId
+        - leadId
+        - message
+        - status
+        - timestamp
+      properties:
+        messageId:
+          type: string
+          description: The unique ID assigned to the dispatched message
+        telegramAccountId:
+          type: string
+          description: The ID of the sending Telegram account
+        leadId:
+          type: string
+          description: The ID of the recipient lead
+        message:
+          type: string
+          description: The sent message text
+        status:
+          type: string
+          description: Status of the dispatch (e.g., PENDING, SENT, FAILED)
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the message was processed
+
+    ErrorResponse:
+      type: object
+      required:
+        - errorCode
+        - errorMessage
+        - timestamp
+      properties:
+        errorCode:
+          type: string
+          description: Standard error category or code
+        errorMessage:
+          type: string
+          description: Detailed explanation of the error
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the error occurred
