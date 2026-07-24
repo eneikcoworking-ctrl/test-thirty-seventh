@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-low": "#f5f3f6",
+                    "secondary-fixed-dim": "#bcc7dd",
+                    "on-primary-fixed": "#0d1a38",
+                    "inverse-on-surface": "#f2f0f3",
+                    "on-surface-variant": "#45464e",
+                    "primary-fixed-dim": "#bac6ec",
+                    "tertiary": "#142922",
+                    "on-background": "#1b1b1e",
+                    "on-primary": "#ffffff",
+                    "background": "#fbf8fc",
+                    "secondary-container": "#d5e0f7",
+                    "on-secondary-fixed-variant": "#3c475a",
+                    "on-secondary-container": "#586377",
+                    "inverse-primary": "#bac6ec",
+                    "primary-fixed": "#dae2ff",
+                    "surface-container": "#f0edf0",
+                    "secondary-fixed": "#d8e3fa",
+                    "error-container": "#ffdad6",
+                    "primary": "#182442",
+                    "secondary": "#545f72",
+                    "on-primary-fixed-variant": "#3a4666",
+                    "outline-variant": "#c6c6ce",
+                    "on-secondary": "#ffffff",
+                    "surface-container-high": "#eae7ea",
+                    "surface-container-highest": "#e4e2e5",
+                    "surface-variant": "#e4e2e5",
+                    "surface-bright": "#fbf8fc",
+                    "on-tertiary-fixed-variant": "#354b43",
+                    "primary-container": "#2e3a59",
+                    "tertiary-fixed-dim": "#b4ccc2",
+                    "inverse-surface": "#303033",
+                    "surface-dim": "#dbd9dc",
+                    "on-tertiary-fixed": "#091f19",
+                    "on-primary-container": "#98a4c9",
+                    "on-surface": "#1b1b1e",
+                    "surface-tint": "#525e7f",
+                    "surface": "#fbf8fc",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "outline": "#75777e",
+                    "error": "#ba1a1a",
+                    "tertiary-container": "#2a3f38",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-container": "#92aaa0",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed": "#111c2c",
+                    "tertiary-fixed": "#cfe8dd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "stack-gap": "12px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "xl": "32px",
+                    "base": "4px",
+                    "lg": "24px",
+                    "container-padding": "16px"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Custom Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #CBD5E0;
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #182442; }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        /* Segmented Control slider effect */
+        .segmented-indicator {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-50 bg-surface border-b border-outline-variant flex items-center justify-between px-container-padding h-16 transition-colors duration-200">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center p-2 rounded-full hover:bg-surface-container-high active:opacity-70 transition-all">
+<span class="material-symbols-outlined text-primary">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary">AI Configuration</h1>
+</div>
+<button class="font-headline-md text-headline-md text-primary px-4 py-1 rounded-full hover:bg-surface-container-high transition-colors duration-200 active:opacity-70">
+            Save
+        </button>
+</header>
+<!-- Main Content -->
+<main class="flex-grow px-container-padding pt-md pb-32 space-y-lg overflow-y-auto">
+<!-- Agent Persona Section -->
+<section class="space-y-sm">
+<h2 class="text-label-md font-label-md text-secondary uppercase tracking-wider px-1">Agent Persona</h2>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md space-y-md">
+<div class="space-y-xs">
+<label class="text-label-sm font-label-sm text-secondary px-1">Agent Name</label>
+<input class="w-full bg-surface border border-outline focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-md py-3 text-body-md text-on-surface transition-all placeholder:text-outline" placeholder="e.g. Travel Concierge" type="text"/>
+</div>
+<div class="space-y-xs">
+<label class="text-label-sm font-label-sm text-secondary px-1">Persona Description</label>
+<textarea class="w-full bg-surface border border-outline focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-md py-3 text-body-md text-on-surface transition-all placeholder:text-outline resize-none" placeholder="Describe the agent's background, purpose, and key behaviors..." rows="4"></textarea>
+<p class="text-label-sm font-label-sm text-on-surface-variant italic opacity-70 px-1">Tip: Define specific knowledge boundaries here.</p>
+</div>
+</div>
+</section>
+<!-- Tone of Voice Section -->
+<section class="space-y-sm">
+<h2 class="text-label-md font-label-md text-secondary uppercase tracking-wider px-1">Tone of Voice</h2>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md space-y-lg">
+<!-- Segmented Slider -->
+<div class="space-y-xs">
+<label class="text-label-sm font-label-sm text-secondary px-1 mb-2 block">Voice Spectrum</label>
+<div class="relative flex bg-surface-container border border-outline-variant rounded-full p-1 h-12">
+<div class="segmented-indicator absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] bg-primary rounded-full" id="tone-indicator"></div>
+<button class="relative z-10 flex-1 flex items-center justify-center font-label-md text-label-md transition-colors text-white" id="btn-formal" onclick="setTone('formal')">Formal</button>
+<button class="relative z-10 flex-1 flex items-center justify-center font-label-md text-label-md transition-colors text-on-surface-variant" id="btn-casual" onclick="setTone('casual')">Casual</button>
+</div>
+</div>
+<!-- Traits Grid -->
+<div class="space-y-xs">
+<label class="text-label-sm font-label-sm text-secondary px-1 mb-2 block">Specific Traits</label>
+<div class="grid grid-cols-2 gap-stack-gap">
+<label class="flex items-center gap-sm p-3 border border-outline-variant rounded-lg cursor-pointer hover:bg-surface-container-low transition-colors active:scale-95">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary border-outline" type="checkbox"/>
+<span class="text-body-md font-medium text-on-surface">Enthusiastic</span>
+</label>
+<label class="flex items-center gap-sm p-3 border border-outline-variant rounded-lg cursor-pointer hover:bg-surface-container-low transition-colors active:scale-95">
+<input class="w-4 h-4 rounded text-primary focus:ring-primary border-outline" type="checkbox"/>
+<span class="text-body-md font-medium text-on-surface">Concise</span>
+</label>
+<label class="flex items-center gap-sm p-3 border border-outline-variant rounded-lg cursor-pointer hover:bg-surface-container-low transition-colors active:scale-95">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-primary border-outline" type="checkbox"/>
+<span class="text-body-md font-medium text-on-surface">Empathetic</span>
+</label>
+<label class="flex items-center gap-sm p-3 border border-outline-variant rounded-lg cursor-pointer hover:bg-surface-container-low transition-colors active:scale-95">
+<input class="w-4 h-4 rounded text-primary focus:ring-primary border-outline" type="checkbox"/>
+<span class="text-body-md font-medium text-on-surface">Technical</span>
+</label>
+</div>
+</div>
+</div>
+</section>
+<!-- Automated Stop-Rules Section -->
+<section class="space-y-sm">
+<h2 class="text-label-md font-label-md text-secondary uppercase tracking-wider px-1">Automated Stop-Rules</h2>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden divide-y divide-outline-variant">
+<!-- Rule Item 1 -->
+<div class="flex items-center justify-between p-md hover:bg-surface-container-low transition-colors">
+<div class="space-y-xs">
+<p class="text-body-md font-semibold text-on-surface">Complex Inquiry detected</p>
+<p class="text-label-sm text-on-surface-variant">Escalate when logic exceeds N-steps</p>
+</div>
+<label class="switch">
+<input checked="" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<!-- Rule Item 2 -->
+<div class="flex items-center justify-between p-md hover:bg-surface-container-low transition-colors">
+<div class="space-y-xs">
+<p class="text-body-md font-semibold text-on-surface">Negative Sentiment detected</p>
+<p class="text-label-sm text-on-surface-variant">Triggered by persistent frustration</p>
+</div>
+<label class="switch">
+<input checked="" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<!-- Rule Item 3 -->
+<div class="flex items-center justify-between p-md hover:bg-surface-container-low transition-colors">
+<div class="space-y-xs">
+<p class="text-body-md font-semibold text-on-surface">Request for human agent</p>
+<p class="text-label-sm text-on-surface-variant">Mandatory intervention trigger</p>
+</div>
+<label class="switch">
+<input checked="" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<!-- Add Custom Rule Button -->
+<button class="w-full flex items-center justify-center gap-2 p-md text-primary font-label-md text-label-md hover:bg-surface-container-high transition-all active:scale-95 group">
+<span class="material-symbols-outlined text-[20px] group-hover:rotate-90 transition-transform">add</span>
+                    Add custom rule
+                </button>
+</div>
+</section>
+<!-- Aesthetic Card with Background Image -->
+<div class="relative overflow-hidden rounded-xl h-48 border border-outline-variant">
+<div class="absolute inset-0 z-0" data-alt="A sophisticated, high-tech command center interface displaying swirling data visualizations and AI neural network connections in deep indigo and slate blue. Soft glowing lines intersect across the frame, creating a sense of deep intelligence and modern corporate power. The lighting is moody and focused, with a clean professional aesthetic suitable for a premium tech configuration screen." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZNXXST6UoVhs8SQcE53ihOaShYEd9ELCOWxGKe8JIGiTmFikJDhhG4fD1CzkCwoUJ6_fV04kUIp673UoXivOL36nxjvqcAEhtH_3CtiLbwJwBIuH7XpvEzdFKOqqsv2lUbrA03rVluEcFCVSvF9Ug0wmmYFihBy1PXKKOrJaPeSV8JdRQhVCT__xp-yn-sPzDuMeONQLX4Dou6vdHM0YbhGd6vukjBKI1U0O62ahHjsJpW9rPZWoHJu3E2KX3dvRY5L2631lEzyxn')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent z-10"></div>
+<div class="absolute bottom-4 left-4 right-4 z-20">
+<p class="text-white font-headline-md text-headline-md">Advanced Reasoning</p>
+<p class="text-on-primary-container text-label-sm">System performance optimized for complex workflows</p>
+</div>
+<div class="absolute top-4 right-4 z-20">
+<span class="bg-primary-container text-white px-3 py-1 rounded-full font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                    Pro
+                </span>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface border-t border-outline-variant shadow-sm flex justify-around items-center h-20 px-2 pb-safe">
+<!-- Agents (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-highest transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="font-label-md text-label-md mt-1">Agents</span>
+</a>
+<!-- Chat (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-highest transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-md text-label-md mt-1">Chat</span>
+</a>
+<!-- History (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-highest transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-md text-label-md mt-1">History</span>
+</a>
+<!-- Settings (Active) -->
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-md text-label-md mt-1">Settings</span>
+</a>
+</nav>
+<script>
+        function setTone(type) {
+            const indicator = document.getElementById('tone-indicator');
+            const btnFormal = document.getElementById('btn-formal');
+            const btnCasual = document.getElementById('btn-casual');
+            
+            if (type === 'formal') {
+                indicator.style.transform = 'translateX(0)';
+                btnFormal.classList.remove('text-on-surface-variant');
+                btnFormal.classList.add('text-white');
+                btnCasual.classList.remove('text-white');
+                btnCasual.classList.add('text-on-surface-variant');
+            } else {
+                indicator.style.transform = 'translateX(calc(100% + 4px))';
+                btnCasual.classList.remove('text-on-surface-variant');
+                btnCasual.classList.add('text-white');
+                btnFormal.classList.remove('text-white');
+                btnFormal.classList.add('text-on-surface-variant');
+            }
+        }
+
+        // Initialize state
+        document.addEventListener('DOMContentLoaded', () => {
+            setTone('formal');
+        });
+    </script>
+</body></html>
