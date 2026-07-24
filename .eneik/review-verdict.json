@@ -5,8 +5,7 @@
       "verdict": "approve",
       "criticalReason": "",
       "concerns": [
-        "In DialogService.handleStopTrigger, throwing generic IllegalArgumentException instead of a custom domain exception when Dialog is not found.",
-        "In DialogService.receiveInboundMessage, the saved message is not added back to the Dialog's message list in memory, which might cause inconsistency if the Dialog object is reused within the same session before a reload."
+        "In InboxService, when a Conversation is created, a placeholder lead username 'lead_' + leadId is used. It would be safer to check the Lead table/repository first to retrieve the actual username if available."
       ]
     },
     {
@@ -14,8 +13,31 @@
       "verdict": "approve",
       "criticalReason": "",
       "concerns": [
-        "In /api/v1/conversations/{conversationId}/messages GET endpoint, the 401 and 500 responses do not reference the ErrorResponse schema, unlike other endpoints.",
-        "In WebSocketEvent schema, the 'oneOf' composition for the payload is defined without a 'discriminator', which may make polymorphism harder to deserialize in strongly typed target languages."
+        "No higher-level service is implemented to coordinate the data layer (the work is limited to TgAccountRepository/ProxyRepository and a database migration). While correct for the Data role, future work will need to integrate these models into services/controllers."
+      ]
+    },
+    {
+      "sourceIndex": 2,
+      "verdict": "approve",
+      "criticalReason": "",
+      "concerns": [
+        "LeadImportService uses a basic custom CSV split logic (line.split(',', -1)). This does not support complex CSVs containing escaped commas inside quotes and could cause runtime issues with more complicated metadata payloads."
+      ]
+    },
+    {
+      "sourceIndex": 3,
+      "verdict": "approve",
+      "criticalReason": "",
+      "concerns": [
+        "Statuses such as warm-up status and cycle status are stored as raw Strings instead of Enums, reducing type-safety and potentially leading to typos in status checks in future modules."
+      ]
+    },
+    {
+      "sourceIndex": 4,
+      "verdict": "approve",
+      "criticalReason": "",
+      "concerns": [
+        "The validation script design/validate_openapi.py is a great addition, but it runs as a standalone Python script. Integrating this contract validation into the standard Maven build lifecycle or a CI workflow would prevent regression more effectively."
       ]
     }
   ]
