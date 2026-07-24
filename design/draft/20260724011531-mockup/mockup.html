@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* AI Pulse Animation for Escalated Cards */
+        @keyframes ai-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 92, 54, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(255, 92, 54, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 92, 54, 0); }
+        }
+        .ai-glow {
+            animation: ai-pulse 2s infinite;
+            border: 1.5px solid #ff5c36;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary-fixed-variant": "#8a1c00",
+                      "secondary-fixed": "#ffdad2",
+                      "on-secondary-fixed": "#3d0700",
+                      "surface-container-high": "#dce9ff",
+                      "surface-variant": "#d3e4fe",
+                      "surface": "#f8f9ff",
+                      "on-surface": "#0b1c30",
+                      "surface-tint": "#004ced",
+                      "primary": "#003ec7",
+                      "on-primary-fixed-variant": "#0038b6",
+                      "secondary-container": "#ff5c36",
+                      "primary-fixed-dim": "#b7c4ff",
+                      "on-primary-fixed": "#001452",
+                      "primary-fixed": "#dde1ff",
+                      "on-primary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "surface-container": "#e5eeff",
+                      "inverse-surface": "#213145",
+                      "inverse-on-surface": "#eaf1ff",
+                      "secondary-fixed-dim": "#ffb4a3",
+                      "on-primary-container": "#dfe3ff",
+                      "on-tertiary-fixed": "#002113",
+                      "on-background": "#0b1c30",
+                      "on-tertiary-container": "#72fec0",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-container": "#007550",
+                      "surface-container-highest": "#d3e4fe",
+                      "surface-container-low": "#eff4ff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-error": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-surface-variant": "#434656",
+                      "surface-bright": "#f8f9ff",
+                      "outline-variant": "#c3c5d9",
+                      "secondary": "#b52701",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "inverse-primary": "#b7c4ff",
+                      "on-secondary-container": "#5a0f00",
+                      "primary-container": "#0052ff",
+                      "on-error-container": "#93000a",
+                      "tertiary": "#005a3c",
+                      "surface-dim": "#cbdbf5",
+                      "on-secondary": "#ffffff",
+                      "background": "#f8f9ff",
+                      "surface-container-lowest": "#ffffff",
+                      "outline": "#737688"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "12px",
+                      "base": "4px",
+                      "container-padding": "16px",
+                      "touch-target-min": "44px",
+                      "stack-gap": "12px"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen pb-24">
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-container-padding h-16 bg-surface dark:bg-surface-dim">
+<div class="flex items-center gap-3">
+<button class="transition-transform duration-200 active:scale-95 text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined text-headline-md">search</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Escalations</h1>
+</div>
+<button class="transition-transform duration-200 active:scale-95 text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined text-headline-md">filter_list</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-20 px-container-padding space-y-stack-gap">
+<!-- Summary Stats Area (Bento-lite) -->
+<div class="grid grid-cols-2 gap-3 mb-6">
+<div class="bg-surface-container-high p-4 rounded-xl shadow-sm border border-outline-variant/30">
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Critical</p>
+<p class="font-headline-lg text-headline-lg text-secondary">02</p>
+</div>
+<div class="bg-surface-container p-4 rounded-xl shadow-sm border border-outline-variant/30">
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Active Deals</p>
+<p class="font-headline-lg text-headline-lg text-primary">14</p>
+</div>
+</div>
+<!-- Chat List Section -->
+<section class="space-y-3">
+<!-- Item 1: AI Escalated -->
+<div class="relative overflow-hidden bg-white dark:bg-inverse-surface rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] ai-glow transition-all active:scale-[0.98]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>
+<div class="p-4 flex gap-4">
+<div class="relative flex-shrink-0">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="A professional headshot of a senior corporate executive with a warm, confident expression. The lighting is crisp and modern, set against a blurred high-end office background with cool blue and grey tones, fitting a professional CRM mobile application aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwr2K1XDx2lczRB1b7sL5k3RMTiDg1GkH4cluKEobvLDgl7N3Emu6st596Gprn0tkpwuTdkGclWjoYEJVVJlcGCuojcJGOmZlCTed_VVayaHUdn0pFeXcqXtu3oqh1tCwWSBe-Qf1fV7tfcpukT1TnCGdm11K8y2_5R2sx9VA_TmbPtOF5QRJiFiXPJ5VT0KuYE877VrivRkpIJeG8y9prsFy62tcMqM2CPniGeTohbGkNqE9tC8Aj9M_1xD2bE1jw4vpYYszWZs-6"/>
+<div class="absolute -bottom-1 -right-1 bg-secondary text-white rounded-full p-0.5 border-2 border-white">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline-sm text-headline-sm truncate text-on-surface">Urgent: Acme Corp Expansion</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2m ago</span>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-secondary-fixed text-on-secondary-fixed px-2 py-0.5 rounded-full font-label-sm text-[10px] flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">priority_high</span>
+                                AI FLAGGED
+                            </span>
+<p class="text-on-surface-variant font-medium text-label-sm">Sarah Jenkins</p>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 italic">
+                            "The prospect is concerned about pricing tiers for the APAC region..."
+                        </p>
+</div>
+</div>
+</div>
+<!-- Item 2: High Priority Escalated -->
+<div class="relative overflow-hidden bg-white dark:bg-inverse-surface rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border-l-4 border-secondary transition-all active:scale-[0.98]">
+<div class="p-4 flex gap-4">
+<img class="w-12 h-12 rounded-full object-cover flex-shrink-0" data-alt="A diverse professional man in a crisp white shirt, smiling subtly in a high-key studio setting. The visual style is clean and professional with a soft depth of field, maintaining the corporate modern personality of the CRM interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKLpfbv-5tQGHkHB4qjnQaQNJ4VD486xjLI9Jgkea8YZ7cj66XOlGDjWlyeZi-J8ZAs0S6sXH098jY6Dqxi6lfr68c0yFIp7NFPm7uqd3GM70Tl6lKLw-cjUaUVfcnzFGoxmucI3vE__nkD5Lcd20CiOg8huKCSaquztWRuJn1TlbDSbgtDRsQ270fFdIkFl_3cycu_I4ibaP04nUucV_xsEK8_AF3lxmi54FsHdwRlEtgXX3dQwwPnwhd533Gs-6qD6FzJvd2ctTL"/>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline-sm text-headline-sm truncate text-on-surface">Global Logistics Deal</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">14m ago</span>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-error-container text-on-error-container px-2 py-0.5 rounded-full font-label-sm text-[10px]">HIGH PRIORITY</span>
+<p class="text-on-surface-variant font-medium text-label-sm">Marcus Thorne</p>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">
+                            Contract legal review is pending signature. Need immediate sync.
+                        </p>
+</div>
+</div>
+</div>
+<!-- Item 3: Regular Chat -->
+<div class="relative overflow-hidden bg-white dark:bg-inverse-surface rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border-l-4 border-primary transition-all active:scale-[0.98]">
+<div class="p-4 flex gap-4">
+<img class="w-12 h-12 rounded-full object-cover flex-shrink-0" data-alt="A minimalist avatar of a young female tech professional with glasses, bright and approachable. The lighting is natural and airy, with a soft-focus office interior background featuring hints of lush green plants and modern furniture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCga2xy2YCEzQgEHWp7gctULnxjU9qqkZ7T2S1yY2yT9RA9-Un_OPoB_yE6o4qkvLmAq9zSatJT6m1s8PdR1Yl9fzrY-CHtxQak_xN1qiZsXKNl0pvWjMQ7Bd__Zj_lNvSEp7p3yZ0ALmEvR6DeI_BBxibQ5xGClQv4Jjl1eoLyEXMBp5vQUA1j7_nc-P87mMqk0D48ZKgwyYfRshppNGlVkPz2JA9hSMJiINHiRltUYF3nqRKIZzTUlifcTDMToL0_LBs-1TLcICFo"/>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline-sm text-headline-sm truncate text-on-surface">TechStart SaaS Renewal</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">1h ago</span>
+</div>
+<p class="text-on-surface-variant font-medium text-label-sm mb-2">Elena Rodriguez</p>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">
+                            The renewal invoice has been sent. Let's touch base on Friday.
+                        </p>
+</div>
+</div>
+</div>
+<!-- Item 4: Closed Success -->
+<div class="relative overflow-hidden bg-surface-container-low dark:bg-surface-dim rounded-xl opacity-80 border-l-4 border-tertiary transition-all active:scale-[0.98]">
+<div class="p-4 flex gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-tertiary">check_circle</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline-sm text-headline-sm truncate text-on-surface">Innovate Ltd</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">5h ago</span>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-tertiary-container/10 text-tertiary px-2 py-0.5 rounded-full font-label-sm text-[10px]">CLOSED - WON</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">
+                            Deal finalized. Handing over to implementation team.
+                        </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Contextual FAB (Only on Home/Dashboard screens) -->
+<button class="fixed right-6 bottom-24 bg-primary-container text-on-primary shadow-xl w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-90 z-40">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">add_comment</span>
+</button>
+</main>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface dark:bg-surface-dim rounded-t-xl shadow-md">
+<!-- Chats (Active) -->
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-full px-5 py-1 transition-all duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">chat</span>
+<span class="font-label-md text-[10px] uppercase">Chats</span>
+</a>
+<!-- Deals -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-200 active:scale-90 px-4 py-1 rounded-full" href="#">
+<span class="material-symbols-outlined">handshake</span>
+<span class="font-label-md text-[10px] uppercase">Deals</span>
+</a>
+<!-- Pipeline -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-200 active:scale-90 px-4 py-1 rounded-full" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span class="font-label-md text-[10px] uppercase">Pipeline</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-200 active:scale-90 px-4 py-1 rounded-full" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-[10px] uppercase">Settings</span>
+</a>
+</nav>
+<script>
+        // Haptic feedback simulation on card press
+        document.querySelectorAll('.rounded-xl').forEach(card => {
+            card.addEventListener('mousedown', () => {
+                card.style.transform = 'scale(0.98)';
+                card.style.boxShadow = '0px 2px 6px rgba(0,0,0,0.02)';
+            });
+            card.addEventListener('mouseup', () => {
+                card.style.transform = 'scale(1)';
+                card.style.boxShadow = '0px 4px 12px rgba(0,0,0,0.05)';
+            });
+        });
+    </script>
+</body></html>
