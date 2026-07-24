@@ -74,4 +74,61 @@ public class DialogAndMessageSchemaTest {
         assertThat(dbDialog).isPresent();
         assertThat(dbDialog.get().getAiState()).isEqualTo(AiState.STOPPED);
     }
+
+    @Test
+    public void testStopTriggerInboundMessageTransitionsToAwaitingHumanIntervention() {
+        // Given a dialog
+        String chatId = "test_chat_stop";
+        dialogService.receiveInboundMessage(chatId, "Hello", SenderType.USER);
+
+        // Verify initial state is ACTIVE
+        Optional<Dialog> initialDbDialog = dialogRepository.findByTelegramChatId(chatId);
+        assertThat(initialDbDialog).isPresent();
+        assertThat(initialDbDialog.get().getAiState()).isEqualTo(AiState.ACTIVE);
+
+        // When a stop-trigger inbound message from user is processed
+        Message savedMessage = dialogService.receiveInboundMessage(chatId, "Please stop messaging me and get me a human operator!", SenderType.USER);
+
+        // Then the dialogue status becomes 'Awaiting Human Intervention'
+        Optional<Dialog> updatedDbDialog = dialogRepository.findByTelegramChatId(chatId);
+        assertThat(updatedDbDialog).isPresent();
+        assertThat(updatedDbDialog.get().getAiState()).isEqualTo(AiState.AWAITING_HUMAN_INTERVENTION);
+        assertThat(updatedDbDialog.get().getAiState().getDisplayName()).isEqualTo("Awaiting Human Intervention");
+    }
+
+    @Test
+    public void testAutomatedReplyHaltedOnHaltedDialogue() {
+        // Given a dialogue transitioned to AWAITING_HUMAN_INTERVENTION via stop-trigger
+        String chatId = "test_chat_halted";
+        dialogService.receiveInboundMessage(chatId, "stop", SenderType.USER);
+
+        // Verify automated reply is not allowed
+        boolean allowed = dialogService.isAutomatedReplyAllowed(chatId);
+        assertThat(allowed).isFalse();
+
+        // When we attempt to generate an automated reply
+        Message reply = dialogService.generateAutomatedReply(chatId, "This is an automated reply draft.");
+
+        // Then the AI does not automatically reply (method returns null, no reply created)
+        assertThat(reply).isNull();
+    }
+
+    @Test
+    public void testIncomingMessagesOnHaltedDialogueDoNotAutoReply() {
+        // Given a halted dialogue (status is STOPPED)
+        String chatId = "test_chat_stopped_direct";
+        dialogService.receiveInboundMessage(chatId, "Hello", SenderType.USER);
+        dialogService.handleStopTrigger(chatId, AiState.STOPPED);
+
+        // When new messages arrive
+        dialogService.receiveInboundMessage(chatId, "Another question?", SenderType.USER);
+
+        // Then automated reply remains disallowed
+        boolean allowed = dialogService.isAutomatedReplyAllowed(chatId);
+        assertThat(allowed).isFalse();
+
+        // And attempt to reply fails
+        Message reply = dialogService.generateAutomatedReply(chatId, "Automated response");
+        assertThat(reply).isNull();
+    }
 }
