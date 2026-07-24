@@ -1,0 +1,82 @@
+{
+  "epics": [
+    {
+      "existingEpicId": null,
+      "title": "Admin Dashboard Authentication and Authorization",
+      "jtbd": "When accessing the self-hosted admin panel, I want to authenticate via secure credentials, so that unauthorized users are prevented from accessing or manipulating sensitive Telegram accounts, session data, and proxies.",
+      "kanoClass": "Must-Be",
+      "cynefinDomain": "complicated",
+      "sixSigmaMetric": "Reduce unauthorized access incidents from 100% to 0%",
+      "tocConstraintRef": "Admin panel access security",
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: The system must block unauthorized access to dashboard pages and API controllers and redirect to a secure login page."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement Admin Dashboard Authentication",
+          "roleTag": "BARCAN-TAG-07",
+          "jtbd": "When implementing admin authentication for this epic, I want to secure existing API controllers and frontend routes, so that unauthorized users are prevented from accessing or manipulating sensitive Telegram accounts, session data, and proxies is achieved.",
+          "acceptanceCriteria": "Scenario 1 (Positive Scenario):\nGiven a registered admin user on the login page (Positive Scenario),\nWhen they enter correct admin credentials,\nThen the system must authenticate them and redirect to the dashboard home.\n\nScenario 2 (Negative Scenario 1):\nGiven an unauthenticated visitor on the dashboard home page URL (Negative Scenario),\nWhen they attempt to view dashboard pages or invoke API controllers,\nThen the system must block access and redirect them to the secure login page.\n\nScenario 3 (Negative Scenario 2):\nGiven an admin login page (Negative Scenario),\nWhen they enter incorrect credentials,\nThen the system must display an error message and refuse authentication.\n\nScenario 4 (Edge Case Scenario):\nGiven an authenticated admin user (Edge Case Scenario),\nWhen their session expires or token is revoked while they are active,\nThen any subsequent API controller invocation must return an HTTP 401 Unauthorized status.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Admin panel access security",
+          "sixSigmaMetric": "Reduce unauthorized access incidents from 100% to 0%",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "f976137f-eb40-471c-873b-cf38c4b9e437",
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: The system must queue outbound messages for automatic retry upon transient connection timeouts or failures instead of dropping them."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement Outbound Message Queue and Retry Resilience",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing outbound message retry resilience for this epic, I want to add queuing and retry mechanisms to the dispatch flow, so that no messages are lost due to transient bridge disconnects is achieved.",
+          "acceptanceCriteria": "Scenario 1 (Positive Scenario):\nGiven an outbound message dispatch request and a healthy connection (Positive Scenario),\nWhen the message is sent to the JNI/JNA bridge,\nThen the system must successfully deliver the message and update its status to DELIVERED.\n\nScenario 2 (Negative Scenario 1):\nGiven an outbound message dispatch request (Negative Scenario),\nWhen the JNI/JNA bridge experiences a transient connection timeout or failure,\nThen the system must queue the message for automatic retry rather than dropping it.\n\nScenario 3 (Negative Scenario 2):\nGiven a queued message in the retry queue (Negative Scenario),\nWhen consecutive retry attempts fail repeatedly up to the maximum limit of 5 retries,\nThen the system must permanently halt retries for this message and transition its status to FAILED.\n\nScenario 4 (Edge Case Scenario):\nGiven a queued message pending retry (Edge Case Scenario),\nWhen the application is abruptly restarted or shut down,\nThen the system must persist the queue state so that the pending message is not lost and is retried upon next startup.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Outbound message delivery reliability",
+          "sixSigmaMetric": "Reduce message loss rate due to disconnects from 100% to 0%",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "3585105d-fa47-4c11-8c67-d7c0425058f6",
+      "sourceIndex": 2,
+      "requirements": [
+        "R1: The system must track outbound message counts per account and halt dispatches once the daily limit of 15-20 contacts is reached."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement Daily Outbound Messaging Rate Limiter",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing daily outbound message rate limiting for this epic, I want to enforce strict limits per account, so that our warmed-up accounts avoid getting spam-blocked or banned by Telegram flood control is achieved.",
+          "acceptanceCriteria": "Scenario 1 (Positive Scenario):\nGiven an active Telegram account with outbound message count below the daily limit (Positive Scenario),\nWhen a campaign message is dispatched,\nThen the system must increment the daily outbound count and successfully send the message.\n\nScenario 2 (Negative Scenario 1):\nGiven an active Telegram account that has reached its daily limit of 15-20 contacts (Negative Scenario),\nWhen a campaign dispatch is attempted,\nThen the system must halt dispatches for that account to prevent spam blocks.\n\nScenario 3 (Negative Scenario 2):\nGiven multiple active campaign tasks for the same Telegram account (Negative Scenario),\nWhen concurrent dispatch requests attempt to exceed the daily limit simultaneously,\nThen the system must atomically serialize and block any dispatches beyond the limit.\n\nScenario 4 (Edge Case Scenario):\nGiven a Telegram account whose daily limit was reached (Edge Case Scenario),\nWhen the 24-hour rolling window resets,\nThen the system must automatically reset the tracked outbound count and allow subsequent campaign dispatches.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Telegram flood control limits",
+          "sixSigmaMetric": "Reduce spam-block incidents due to rate limits from 100% to 0%",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}
