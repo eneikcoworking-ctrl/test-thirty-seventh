@@ -1,0 +1,12 @@
+{"verdicts": [
+  {
+    "sourceIndex": 0,
+    "verdict": "block",
+    "criticalReason": "The PR violates boundaries by committing multiple internal orchestrator files under the `.eneik/` directory. Additionally, the PR introduces out-of-scope backend changes such as Java model classes, JPA repositories, controllers, services, database migrations, and integration tests, which are completely outside of the BARCAN-TAG-11 (Frontend UI) role.",
+    "concerns": [
+      "The spintax highlighter uses raw HTML string manipulation via `@html` in `campaigns/+page.svelte`, which could present XSS vulnerabilities if inputs are not properly sanitized.",
+      "The simulated file upload and parsing processes rely on temporary local states instead of robust API error handling and validation.",
+      "The newly added backend REST controllers catch raw Exception messages and can potentially leak internal system stack traces."
+    ]
+  }
+]}
