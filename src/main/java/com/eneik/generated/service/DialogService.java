@@ -26,6 +26,7 @@ public class DialogService {
     /**
      * Receives an inbound message, links it to an existing dialog (or creates a new dialog),
      * and stores it in the Messages table with the sender type.
+     * Enforces an 8 back-and-forth message limit as a concrete blocker.
      */
     public Message receiveInboundMessage(String telegramChatId, String text, SenderType senderType) {
         Dialog dialog = dialogRepository.findByTelegramChatId(telegramChatId)
@@ -34,8 +35,26 @@ public class DialogService {
                     return dialogRepository.save(newDialog);
                 });
 
+        // 1. Check existing count of messages in this dialogue session
+        long currentCount = messageRepository.countByDialogId(dialog.getId());
+        if (currentCount >= 8) {
+            dialog.setAiState(AiState.STOPPED);
+            dialogRepository.save(dialog);
+            throw new IllegalStateException("Conversation limit reached: back-and-forth message count exceeds 8.");
+        }
+
+        // 2. Save the new message
         Message message = new Message(dialog, text, senderType);
-        return messageRepository.save(message);
+        Message savedMessage = messageRepository.save(message);
+
+        // 3. Re-evaluate count to check if we just hit/exceeded the limit of 8
+        long updatedCount = messageRepository.countByDialogId(dialog.getId());
+        if (updatedCount >= 8) {
+            dialog.setAiState(AiState.STOPPED);
+            dialogRepository.save(dialog);
+        }
+
+        return savedMessage;
     }
 
     /**
