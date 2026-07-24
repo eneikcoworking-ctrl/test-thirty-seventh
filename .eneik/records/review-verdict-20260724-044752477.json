@@ -1,0 +1,13 @@
+{
+  "verdicts": [
+    {
+      "sourceIndex": 0,
+      "verdict": "approve",
+      "criticalReason": "",
+      "concerns": [
+        "The `ImportLeadsRequest` uses a raw string payload `content` for CSV data; a multipart/form-data upload might be a more scalable alternative in future iterations.",
+        "Error handling responses for the new endpoints use the general `ErrorResponse` schema, but do not specify specific `errorCode` values for validation/not-found scenarios."
+      ]
+    }
+  ]
+}
