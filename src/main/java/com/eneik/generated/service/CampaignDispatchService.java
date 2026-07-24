@@ -37,8 +37,11 @@ public class CampaignDispatchService {
      */
     public String dispatchCampaignMessage(String campaignId, Long telegramChatId, String text) {
         while (true) {
-            // Find eligible accounts (Active, and daily_dispatch_count < daily_dispatch_limit)
-            List<TgAccount> eligibleAccounts = tgAccountRepository.findEligibleAccounts(campaignId, "Active");
+            // Find eligible accounts (not currently FLOOD_WAIT, and daily_dispatch_count < daily_dispatch_limit).
+            // findEligibleAccounts excludes the given status rather than requiring an exact match (see main's
+            // already-merged CampaignFailoverService usage of the same method) - "Active" as an excluded value
+            // would have inverted this query to return every NON-active account instead.
+            List<TgAccount> eligibleAccounts = tgAccountRepository.findEligibleAccounts(campaignId, "FLOOD_WAIT");
 
             log.info("Eligible accounts count: {} for campaign: {}", eligibleAccounts.size(), campaignId);
             for (TgAccount acc : eligibleAccounts) {
