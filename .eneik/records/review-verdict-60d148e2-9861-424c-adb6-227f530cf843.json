@@ -1,0 +1,13 @@
+{
+  "verdicts": [
+    {
+      "sourceIndex": 0,
+      "verdict": "block",
+      "criticalReason": "The PR commits multiple internal orchestrator bookkeeping files under the `.eneik/` directory (such as `.eneik/records/...` and `.eneik/review-verdict.json`), which is a direct violation of the PR Boundaries and causes automatic rejection. Additionally, the PR introduces database migrations (V4), Java models, controllers, services, repositories, and backend integration tests which are entirely out of scope for the BARCAN-TAG-11 (Frontend UI) role.",
+      "concerns": [
+        "The simulated lead list ingestion and CSV parsing in the Svelte component is entirely client-side and does not integrate with any real backend API endpoint on the server.",
+        "The file upload process uses simple mock intervals rather than a robust file reader with error boundary handling."
+      ]
+    }
+  ]
+}

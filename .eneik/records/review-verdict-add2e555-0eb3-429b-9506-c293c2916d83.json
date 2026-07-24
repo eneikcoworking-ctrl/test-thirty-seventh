@@ -1,0 +1,8 @@
+{"verdicts": [
+  {
+    "sourceIndex": 0,
+    "verdict": "block",
+    "criticalReason": "The PR contains several critical blockers: 1) It violates strict boundaries by deleting and modifying multiple internal orchestrator bookkeeping files under the `.eneik/` directory (such as deleting previous review verdicts and altering `.eneik/review-verdict.json`). 2) It introduces a severe risk of data loss and schema destruction by deleting multiple core domain entities (Campaign, Lead, Proxy, TgAccount), their corresponding repositories, services, and multiple Flyway database migration SQL files (V1, V2, V4). 3) It deletes multiple existing integration/unit tests (CampaignAndLeadIntegrationTests, WarmUpIntegrationTests, TgAccountRepositoryTest, InboxControllerTest) without replacement, violating testing policies.",
+    "concerns": []
+  }
+]}
