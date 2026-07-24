@@ -1,49 +1,11 @@
-{
-  "verdicts": [
-    {
-      "sourceIndex": 0,
-      "verdict": "approve",
-      "criticalReason": "",
-      "concerns": [
-        "In `DispatchService.dispatchMessage`, the recursive call `dispatchMessage(chatId, text)` upon catching `TelegramFloodWaitException` could theoretically lead to a `StackOverflowError` if a very large pool of active accounts all hit flood wait limits sequentially. A loop-based or queue-driven retry/failover mechanism would be more robust.",
-        "The status string values use mixed case comparisons in some places (e.g. \"Active\" vs \"ACTIVE\"). While handled programmatically, enforcing a consistent uppercase status enum/constant in the codebase would prevent future bugs."
-      ]
-    },
-    {
-      "sourceIndex": 1,
-      "verdict": "approve",
-      "criticalReason": "",
-      "concerns": [
-        "In `CampaignController.java`, the CSV/plain-text import reads the entire multipart file into a single String in-memory using `new String(file.getBytes(), StandardCharsets.UTF_8)`. For large lead files, this can cause an `OutOfMemoryError`. A streaming reader or processing the input stream line-by-line would be more memory-efficient.",
-        "Error responses for the import endpoints use a generic 404/500 status without specifying structured ErrorResponse error codes like the newer endpoints do."
-      ]
-    },
-    {
-      "sourceIndex": 2,
-      "verdict": "approve",
-      "criticalReason": "",
-      "concerns": [
-        "In `SpintaxService.evaluate`, the split expression `content.split(\"\\\\|\")` is used to split choices. If choice texts contain escaped characters or special symbols, this could lead to incorrect splitting. A more comprehensive tokenizer or regex pattern would make it more robust.",
-        "In `DialogService`, message count is checked twice (before and after saving a new message) to handle the 8-message limit. Although robust, the flow could be simplified by performing a single check when a message is received."
-      ]
-    },
-    {
-      "sourceIndex": 3,
-      "verdict": "approve",
-      "criticalReason": "",
-      "concerns": [
-        "In `WarmUpScheduler.runPendingWarmUpTasks`, invoking `delayService.sleep(delay)` blocks the scheduling thread. Since Spring's default scheduler is single-threaded, a thread sleeping for large delay periods will block other scheduled tasks. Offloading the actual tasks to an asynchronous task executor or thread pool is highly recommended.",
-        "The exponential delay calculation uses `Math.pow(multiplier, i)` cast to `long`. If the number of pending tasks is exceptionally high, this could result in numeric overflow."
-      ]
-    },
-    {
-      "sourceIndex": 4,
-      "verdict": "approve",
-      "criticalReason": "",
-      "concerns": [
-        "In `CampaignAssignmentService`, `LocalDateTime.now()` is used directly to compute the 1-month-old date boundary. Using a mockable `Clock` bean or custom time service would improve testing reliability and eliminate timezone or execution-time drift issues.",
-        "The campaign assignment validation returns `true` upon success but does not persist the actual assignment mapping in a relational table. This is sufficient for the slice's constraints but should be implemented as a database entity in a follow-up ticket."
-      ]
-    }
-  ]
-}
+{"verdicts": [
+  {
+    "sourceIndex": 0,
+    "verdict": "approve",
+    "criticalReason": "",
+    "concerns": [
+      "The UI currently uses mock hardcoded chat and message data in `App.svelte` instead of fetching from real backend API endpoints.",
+      "The layout imports Google Fonts and Material Symbols directly via HTML `link` tags; using a local or bundled asset approach would be more robust for self-hosted networks."
+    ]
+  }
+]}
