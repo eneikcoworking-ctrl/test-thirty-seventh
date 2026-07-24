@@ -1,0 +1,20 @@
+{"verdicts": [
+  {
+    "sourceIndex": 0,
+    "verdict": "block",
+    "criticalReason": "The PR violates boundaries by committing and modifying files under the `.eneik/` directory (specifically deleting files under `.eneik/records/...` and modifying `.eneik/review-verdict.json`), which is a direct violation of PR Boundaries. Additionally, the PR introduces severe regression and data loss risks by deleting unrelated domain models, services, repositories, database migrations, and integration tests.",
+    "concerns": [
+      "In DialogService.java, findDialogById and findAllDialogs do not implement any pagination or maximum constraints, which could lead to performance issues or out-of-memory errors as the database grows.",
+      "In ConversationController.java, some helper mappers map states to string literals without checking or handling all potential enum states of AiState, which could lead to unexpected behavior if new states are introduced."
+    ]
+  },
+  {
+    "sourceIndex": 1,
+    "verdict": "block",
+    "criticalReason": "The PR violates boundaries by committing and modifying `.eneik/review-verdict.json` under the `.eneik/` directory, which is a direct violation of PR Boundaries and causes automatic rejection.",
+    "concerns": [
+      "In `+page.svelte`, the file upload and progress tracking are completely simulated on the client-side using a simple `setInterval` mock, rather than integrating with an actual backend API endpoint for file ingestion or parsing.",
+      "The status color helper in `+page.svelte` relies on raw string comparison for statuses rather than typed TypeScript enums, which increases the likelihood of typos and reduces type-safety."
+    ]
+  }
+]}
