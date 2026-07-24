@@ -1,0 +1,12 @@
+{
+  "name": "test-thirty-seventh-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm --prefix frontend install",
+    "check": "npm --prefix frontend run check --if-present",
+    "test": "npm --prefix frontend test --if-present",
+    "build": "npm --prefix frontend run build --if-present",
+    "dev": "npm --prefix frontend run dev"
+  }
+}
