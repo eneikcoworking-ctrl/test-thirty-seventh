@@ -1,0 +1,11 @@
+{"verdicts": [
+  {
+    "sourceIndex": 0,
+    "verdict": "approve",
+    "criticalReason": "",
+    "concerns": [
+      "The update of the daily dispatch count (tgAccount.setDailyDispatchCount(tgAccount.getDailyDispatchCount() + 1)) is performed as a standard read-then-save rather than an atomic database increment. Although this is not a terminal status value transition (which would trigger a block verdict), a concurrent dispatch request could lead to a race condition where some dispatches are not counted correctly.",
+      "In DispatchService, when finding the candidate failover account, calling findByCampaignIdAndStatusIgnoreCaseOrderByIdAsc in a loop might load many candidate accounts, and then counting dispatches for each candidate in a loop (outboundDispatchRepository.countByTgAccountIdAndDispatchedAtAfter) could lead to an N+1 query pattern if there are many active accounts in the same campaign."
+    ]
+  }
+]}
