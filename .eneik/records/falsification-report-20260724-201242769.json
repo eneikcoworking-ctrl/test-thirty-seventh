@@ -1,0 +1,54 @@
+{
+  "violations": [
+    {
+      "roleTag": "BARCAN-TAG-08",
+      "type": "refusal_criteria",
+      "reason": "Merged PRs #66 and #67 rename Flyway migration files using timestamp-based versions (e.g., V20260724115245902__) instead of the strict sequential numbering (V14, V15...) required by the role charter. Additionally, no corresponding rollback script (down migration, 'U' prefix) was included, violating refusal criteria 3."
+    },
+    {
+      "roleTag": "BARCAN-TAG-08",
+      "type": "methodological",
+      "philosopher": "Пер Мартин-Лёф",
+      "thesis": "Принцип интуиционистской теории типов. Отсутствие обязательного down-скрипта для миграций в PR #66 и #67 разрушает обратимость доказательства корректности схемы БД, делая состояние системы логически неполным и невосстановимым при сбоях.",
+      "score": "3",
+      "mustBe": "Каждая миграция должна иметь парный down-скрипт",
+      "performance": "Бесшовный автоматический откат",
+      "attractive": "Гарантированная целостность при откате"
+    },
+    {
+      "roleTag": "BARCAN-TAG-09",
+      "type": "refusal_criteria",
+      "reason": "Task plan JSON in PR #69 contains sixSigmaMetric values (e.g., 'Reduce unauthorized access incidents to 0') that specify absolute targets rather than a measurable delta (e.g., 'from A% to B%'). This violates the strict forbidden rule against compiling tasks without a measurable delta for six_sigma_metric."
+    },
+    {
+      "roleTag": "BARCAN-TAG-09",
+      "type": "methodological",
+      "philosopher": "Хиллари Патнэм",
+      "thesis": "Принцип прагматического реализма: six_sigma_metric должна быть измеримой дельтой. Указание абсолютной цели ('to 0') без фиксации текущего базового состояния не позволяет применить статистический контроль качества и измерить реальное улучшение, превращая метрику в абстрактное пожелание.",
+      "score": "3",
+      "mustBe": "Метрика обязана содержать явную измеримую дельту (от А до Б)",
+      "performance": "Снижение субъективности оценок",
+      "attractive": "Точная статистическая проверяемость улучшений"
+    },
+    {
+      "roleTag": "BARCAN-TAG-06",
+      "type": "refusal_criteria",
+      "reason": "The task slices in PR #69 only provide a single scenario in their acceptanceCriteria. This violates the obligatory requirement that each task must contain a minimum of 1 positive scenario, 2 negative scenarios, and 1 edge case scenario."
+    },
+    {
+      "roleTag": "BARCAN-TAG-06",
+      "type": "methodological",
+      "philosopher": "Карл Поппер",
+      "thesis": "Принцип фальсифицируемости: предоставление только одного сценария в критериях приемки (PR #69) делает невозможным активный поиск контрпримеров. Отсутствие обязательных негативных и граничных сценариев исключает возможность полноценной фальсификации, сводя тестирование к простому подтверждению.",
+      "score": "3",
+      "mustBe": "Минимум 4 сценария разного типа для каждой задачи",
+      "performance": "Повышение покрытия краевых случаев",
+      "attractive": "Полная уверенность в устойчивости фичи к аномалиям"
+    },
+    {
+      "roleTag": "CLIENT-SPEC",
+      "type": "specification_coverage",
+      "reason": "The rate limiter implementation in PR #67 throws an IllegalStateException and halts dispatches when the daily limit is reached. This contradicts client specification FEAT-CMP-04 (Automatic Session Rotation), which requires dynamic failover to switch tasks to the next available account upon reaching the limit, rather than crashing or halting."
+    }
+  ]
+}
