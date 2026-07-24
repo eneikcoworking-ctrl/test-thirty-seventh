@@ -17,7 +17,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(classes = TestApplication.class)
+@SpringBootTest(classes = Application.class)
 @ActiveProfiles("test")
 public class CampaignAndLeadIntegrationTests {
 

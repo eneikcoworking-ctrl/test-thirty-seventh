@@ -1,4 +1,3 @@
 # Eneik orchestrator internal record files - never part of product code
 .eneik/
 target/
-data/
