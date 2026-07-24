@@ -52,6 +52,9 @@ public class CampaignAssignmentService {
                 throw new IllegalArgumentException("Campaign assignment rejected: Account is under 1 month old");
             }
 
+            tgAccount.setCampaignId(campaignId.toString());
+            tgAccountRepository.save(tgAccount);
+
         } else if (accountType == AccountType.WARM_UP_ACCOUNT) {
             Account account = accountRepository.findById(accountId)
                     .orElseThrow(() -> new IllegalArgumentException("Account not found with ID: " + accountId));

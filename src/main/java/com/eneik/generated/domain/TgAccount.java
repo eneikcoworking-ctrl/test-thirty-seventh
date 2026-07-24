@@ -36,6 +36,15 @@ public class TgAccount {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "campaign_id", length = 36)
+    private String campaignId;
+
+    @Column(name = "daily_dispatch_limit", nullable = false)
+    private Integer dailyDispatchLimit = 50;
+
+    @Column(name = "daily_dispatch_count", nullable = false)
+    private Integer dailyDispatchCount = 0;
+
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -57,4 +66,13 @@ public class TgAccount {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getCampaignId() { return campaignId; }
+    public void setCampaignId(String campaignId) { this.campaignId = campaignId; }
+
+    public Integer getDailyDispatchLimit() { return dailyDispatchLimit; }
+    public void setDailyDispatchLimit(Integer dailyDispatchLimit) { this.dailyDispatchLimit = dailyDispatchLimit; }
+
+    public Integer getDailyDispatchCount() { return dailyDispatchCount; }
+    public void setDailyDispatchCount(Integer dailyDispatchCount) { this.dailyDispatchCount = dailyDispatchCount; }
 }
