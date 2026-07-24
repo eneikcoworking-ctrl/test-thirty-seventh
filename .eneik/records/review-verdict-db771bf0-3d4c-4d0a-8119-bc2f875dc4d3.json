@@ -1,0 +1,12 @@
+{
+  "verdicts": [
+    {
+      "sourceIndex": 0,
+      "verdict": "approve",
+      "criticalReason": "",
+      "concerns": [
+        "Ensure the deployment/rollback mechanisms in CI align with Flyway's undo capabilities since OSS Flyway does not run U-scripts automatically."
+      ]
+    }
+  ]
+}
