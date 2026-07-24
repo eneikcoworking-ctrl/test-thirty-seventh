@@ -7,8 +7,12 @@ import com.eneik.generated.model.SenderType;
 import com.eneik.generated.repository.DialogRepository;
 import com.eneik.generated.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+import java.util.List;
 
 @Service
 @Transactional
@@ -47,5 +51,32 @@ public class DialogService {
 
         dialog.setAiState(newAiState);
         return dialogRepository.save(dialog);
+    }
+
+    /**
+     * Processes an inbound message, persists it, and returns the most recent dialog context
+     * up to a specified maximum number of messages. If the total number of messages reaches
+     * 16 (8 turns), the session is stopped and an IllegalStateException is thrown.
+     */
+    @Transactional(noRollbackFor = IllegalStateException.class)
+    public List<Message> processInboundMessageAndGetContext(String telegramChatId, String text, SenderType senderType, int maxMessages) {
+        // Persist the incoming message
+        Message newMessage = receiveInboundMessage(telegramChatId, text, senderType);
+        Dialog dialog = newMessage.getDialog();
+
+        // Check total turns
+        long totalMessages = messageRepository.countByDialogId(dialog.getId());
+        if (totalMessages >= 16) {
+            handleStopTrigger(telegramChatId, AiState.STOPPED);
+            throw new IllegalStateException("Dialog reached the maximum allowed turns (8 turns / 16 messages). AI state set to STOPPED.");
+        }
+
+        // Fetch context history truncating to maxMessages
+        List<Message> contextHistory = messageRepository.findByDialogIdOrderByReceivedAtDesc(dialog.getId(), PageRequest.of(0, maxMessages));
+
+        // Reverse so that context is in chronological order
+        List<Message> mutableHistory = new java.util.ArrayList<>(contextHistory);
+        Collections.reverse(mutableHistory);
+        return mutableHistory;
     }
 }

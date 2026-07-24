@@ -12,9 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
@@ -73,5 +75,44 @@ public class DialogAndMessageSchemaTest {
         Optional<Dialog> dbDialog = dialogRepository.findByTelegramChatId(chatId);
         assertThat(dbDialog).isPresent();
         assertThat(dbDialog.get().getAiState()).isEqualTo(AiState.STOPPED);
+    }
+
+    @Test
+    public void testProcessInboundMessageAndGetContext_TruncatesHistory() {
+        String chatId = "context_chat_1";
+
+        // Add 5 messages
+        for (int i = 1; i <= 5; i++) {
+            dialogService.receiveInboundMessage(chatId, "Msg " + i, SenderType.USER);
+        }
+
+        // Add 6th message via processInboundMessageAndGetContext, requesting max 3
+        List<Message> context = dialogService.processInboundMessageAndGetContext(chatId, "Msg 6", SenderType.USER, 3);
+
+        // Verify we only get 3 messages back in chronological order
+        assertThat(context).hasSize(3);
+        assertThat(context.get(0).getText()).isEqualTo("Msg 4");
+        assertThat(context.get(1).getText()).isEqualTo("Msg 5");
+        assertThat(context.get(2).getText()).isEqualTo("Msg 6");
+    }
+
+    @Test
+    public void testProcessInboundMessageAndGetContext_BlocksAfter16Messages() {
+        String chatId = "block_chat_1";
+
+        // Add 15 messages (7.5 turns)
+        for (int i = 1; i <= 15; i++) {
+            dialogService.receiveInboundMessage(chatId, "Msg " + i, SenderType.USER);
+        }
+
+        // Add 16th message (completes 8th turn). Should throw exception and stop AI.
+        assertThatThrownBy(() -> dialogService.processInboundMessageAndGetContext(chatId, "Msg 16", SenderType.USER, 10))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("maximum allowed turns");
+
+        // Verify AI state is STOPPED
+        Optional<Dialog> dialog = dialogRepository.findByTelegramChatId(chatId);
+        assertThat(dialog).isPresent();
+        assertThat(dialog.get().getAiState()).isEqualTo(AiState.STOPPED);
     }
 }
