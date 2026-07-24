@@ -1,21 +1,83 @@
 package com.eneik.generated.controller;
 
+import com.eneik.generated.domain.Campaign;
+import com.eneik.generated.domain.Lead;
 import com.eneik.generated.dto.CampaignAssignmentRequest;
 import com.eneik.generated.dto.CampaignAssignmentResponse;
 import com.eneik.generated.dto.ErrorResponse;
+import com.eneik.generated.dto.ImportLeadsRequest;
+import com.eneik.generated.repository.CampaignRepository;
 import com.eneik.generated.service.CampaignAssignmentService;
+import com.eneik.generated.service.CampaignService;
+import com.eneik.generated.service.LeadImportService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/campaigns")
 public class CampaignAssignmentController {
 
     private final CampaignAssignmentService campaignAssignmentService;
+    private final CampaignService campaignService;
+    private final LeadImportService leadImportService;
+    private final CampaignRepository campaignRepository;
 
-    public CampaignAssignmentController(CampaignAssignmentService campaignAssignmentService) {
+    public CampaignAssignmentController(CampaignAssignmentService campaignAssignmentService,
+                                        CampaignService campaignService,
+                                        LeadImportService leadImportService,
+                                        CampaignRepository campaignRepository) {
         this.campaignAssignmentService = campaignAssignmentService;
+        this.campaignService = campaignService;
+        this.leadImportService = leadImportService;
+        this.campaignRepository = campaignRepository;
+    }
+
+    @PostMapping
+    public ResponseEntity<?> createCampaign(@RequestBody Map<String, String> request) {
+        String name = request.get("name");
+        if (name == null || name.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("INVALID_INPUT", "Campaign name is required"));
+        }
+        String spintaxRules = request.get("spintaxRules");
+        String id = request.get("id");
+        if (id == null || id.trim().isEmpty()) {
+            id = java.util.UUID.randomUUID().toString();
+        }
+        Campaign campaign = new Campaign(id, name, spintaxRules);
+        Campaign savedCampaign = campaignService.saveCampaign(campaign);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedCampaign);
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getCampaigns() {
+        List<Campaign> campaigns = campaignRepository.findAll();
+        return ResponseEntity.ok(campaigns);
+    }
+
+    @PostMapping("/{campaignId}/leads/import")
+    public ResponseEntity<?> importLeads(
+            @PathVariable("campaignId") String campaignId,
+            @RequestBody ImportLeadsRequest request) {
+        if (!campaignRepository.existsById(campaignId)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("RESOURCE_NOT_FOUND", "Campaign not found: " + campaignId));
+        }
+        if (request == null || request.getContent() == null || request.getContent().trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("INVALID_INPUT", "Lead content is required"));
+        }
+        try {
+            List<Lead> leads = leadImportService.importLeads(campaignId, request.getContent());
+            return ResponseEntity.status(HttpStatus.CREATED).body(leads);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("IMPORT_FAILED", e.getMessage()));
+        }
     }
 
     @PostMapping("/assignments")
