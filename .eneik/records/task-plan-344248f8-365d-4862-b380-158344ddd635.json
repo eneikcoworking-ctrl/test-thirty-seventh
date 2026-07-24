@@ -1,0 +1,34 @@
+{
+  "epics": [
+    {
+      "existingEpicId": "a79021eb-3135-4020-aeac-d3ae3d879746",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Re-implement the unmerged AI dialogue engine feature directly against the current main branch, addressing the 2 recorded follow-up concerns."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Re-implement AI dialogue logic on main",
+          "roleTag": "BARCAN-TAG-04",
+          "jtbd": "When implementing the unmerged AI logic for this epic, I want to write the changes directly against the latest main branch, so that the feature is integrated without the design clashes that blocked the previous branch.",
+          "acceptanceCriteria": "Given the current state of the main branch,\nWhen the AI dialogue logic is re-implemented,\nThen it must integrate seamlessly without architectural conflicts.\nGiven the 2 follow-up concerns from the abandoned PR,\nWhen the new code is reviewed,\nThen it must demonstrably address both concerns.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "AI logic integration stability",
+          "sixSigmaMetric": "Reduce AI logic merge conflict rate to 0%",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}
