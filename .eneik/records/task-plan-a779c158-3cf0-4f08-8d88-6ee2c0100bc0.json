@@ -1,0 +1,94 @@
+{
+  "epics": [
+    {
+      "existingEpicId": "3585105d-fa47-4c11-8c67-d7c0425058f6",
+      "sixSigmaMetric": "Reduce account ban rate by 95% due to flood control violations",
+      "tocConstraintRef": "Telegram Flood Control Barrier",
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Track outbound message count per Telegram account per 24 hours.",
+        "R2: Halt dispatches for an account when it reaches the 15-20 daily limit."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement Daily Outbound Messaging Rate Limiter",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing the rate limiter for this epic, I want to track and enforce daily limits in the dispatcher code, so that the account lifespan is maximized.",
+          "acceptanceCriteria": "Given an active Telegram account and a campaign task,\nWhen messages are dispatched,\nThen the system must track outbound counts per account.\nGiven the outbound count reaches the daily limit,\nWhen the next dispatch is attempted,\nThen the system must halt dispatches for that account.",
+          "leanValue": "essential",
+          "cynefinDomain": "clear",
+          "tocConstraintRef": "Dispatcher Message Throughput",
+          "sixSigmaMetric": "Zero flood control bans triggered by exceeding daily limits",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1",
+            "R2"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "f976137f-eb40-471c-873b-cf38c4b9e437",
+      "sixSigmaMetric": "Increase campaign uptime from failure to recovery to under 1 second",
+      "tocConstraintRef": "Account Availability Bottleneck",
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: Catch FLOOD_WAIT errors and daily limit triggers during message dispatch.",
+        "R2: Dynamically rotate the active task to the next eligible account in the pool."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement Automatic Session Rotation and Failover",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing failover logic for this epic, I want to catch limits and errors to dynamically switch accounts, so that campaigns run continuously.",
+          "acceptanceCriteria": "Given a campaign running across a pool of connected Telegram accounts,\nWhen the active account encounters a FLOOD_WAIT error,\nThen the task must rotate to the next eligible account.\nGiven the active account reaches its daily limit,\nWhen a dispatch is triggered,\nThen the task must seamlessly shift to the next available account.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Session Rotation Latency",
+          "sixSigmaMetric": "100% automated recovery on FLOOD_WAIT errors without manual intervention",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1",
+            "R2"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": null,
+      "title": "Unified Frontend Integration for Platform Admin Panel",
+      "jtbd": "When managing the platform, I want the Svelte UI to interact with backend REST controllers, so that operators can onboard accounts, import campaign lists, and read or reply to live conversation streams in real time.",
+      "kanoClass": "Must-Be",
+      "cynefinDomain": "complicated",
+      "sixSigmaMetric": "Decrease mock data usage from 100% to 0% across ACC, CMP, and CRM views in the Svelte UI",
+      "tocConstraintRef": "Frontend-Backend Data Synchronization",
+      "sourceIndex": 2,
+      "requirements": [
+        "R1: Integrate Svelte admin panel with OTP/session onboarding REST API.",
+        "R2: Integrate Svelte admin panel with lead CSV list ingestion REST API.",
+        "R3: Integrate Svelte admin panel with unified chat inbox REST API."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Wire Svelte Views to REST Backend APIs",
+          "roleTag": "BARCAN-TAG-11",
+          "jtbd": "When implementing API integrations for this epic, I want to replace static mock data with real HTTP calls, so that the admin panel reflects live backend state.",
+          "acceptanceCriteria": "Given the Svelte admin panel,\nWhen an operator uploads a CSV list,\nThen the frontend must communicate with the ingest REST API.\nGiven the Svelte admin panel,\nWhen an operator onboards an account,\nThen the frontend must successfully complete the OTP flow with the backend.\nGiven the Svelte admin panel,\nWhen an operator views or sends messages,\nThen the unified inbox must sync with the live CRM API.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Frontend State Management",
+          "sixSigmaMetric": "100% of UI actions correctly persisted via backend REST APIs",
+          "hasUi": true,
+          "requirementRefs": [
+            "R1",
+            "R2",
+            "R3"
+          ]
+        }
+      ]
+    }
+  ]
+}

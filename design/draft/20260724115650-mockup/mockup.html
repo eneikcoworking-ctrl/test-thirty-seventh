@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>API Control Center - Live Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;family=JetBrains+Mono:wght@450&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-container": "#7c839b",
+                    "on-secondary-fixed": "#002113",
+                    "secondary-container": "#6cf8bb",
+                    "surface-container-highest": "#d3e4fe",
+                    "surface-container": "#e5eeff",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "on-tertiary-fixed": "#07006c",
+                    "on-background": "#0b1c30",
+                    "tertiary": "#000000",
+                    "tertiary-fixed": "#e1e0ff",
+                    "inverse-primary": "#bec6e0",
+                    "primary-container": "#131b2e",
+                    "inverse-surface": "#213145",
+                    "outline": "#76777d",
+                    "on-secondary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#bec6e0",
+                    "secondary": "#006c49",
+                    "on-primary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "surface-container-high": "#dce9ff",
+                    "surface-dim": "#cbdbf5",
+                    "error-container": "#ffdad6",
+                    "on-secondary-fixed-variant": "#005236",
+                    "primary": "#000000",
+                    "on-tertiary-container": "#7073ff",
+                    "primary-fixed": "#dae2fd",
+                    "tertiary-fixed-dim": "#c0c1ff",
+                    "tertiary-container": "#07006c",
+                    "background": "#f8f9ff",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#565e74",
+                    "surface": "#f8f9ff",
+                    "on-primary-fixed": "#131b2e",
+                    "surface-bright": "#f8f9ff",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-tertiary-fixed-variant": "#2f2ebe",
+                    "on-surface-variant": "#45464d",
+                    "on-secondary-container": "#00714d",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed": "#6ffbbe",
+                    "surface-variant": "#d3e4fe",
+                    "surface-container-low": "#eff4ff",
+                    "on-surface": "#0b1c30",
+                    "outline-variant": "#c6c6cd",
+                    "on-tertiary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "unit": "4px",
+                    "margin-page": "32px",
+                    "stack-sm": "8px",
+                    "padding-card": "20px",
+                    "gutter": "24px",
+                    "stack-md": "16px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "display": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "mono-data": ["JetBrains Mono"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "mono-data": ["13px", {"lineHeight": "20px", "fontWeight": "450"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #c6c6cd; border-radius: 2px; }
+      @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+      .status-pulse { animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-hidden h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="w-full sticky top-0 z-50 bg-surface border-b border-outline-variant flex justify-between items-center px-margin-page h-16">
+<div class="flex items-center gap-stack-md">
+<span class="material-symbols-outlined text-primary cursor-pointer active:opacity-80" data-icon="menu">menu</span>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">API Control Center</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex gap-4 mr-4">
+<span class="text-on-surface-variant font-label-md text-label-md cursor-pointer hover:bg-surface-container-high transition-colors px-3 py-1 rounded">System Health: Optimal</span>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant cursor-pointer active:opacity-80">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a senior DevOps engineer in a clean, high-key corporate office environment. The subject is wearing a modern dark navy polo shirt. The lighting is soft and directional, typical of high-end corporate photography, with a blurred technical dashboard background in soft blue and white tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuALKEcwC5cY1jqFJTsMVuc5DobBbuUqkdMeYo2TB0tv1Nr7DBC-NKgbaTfM6VI9fRiKRUM-PNAl_9W-yqW3CQ1TsetxvlDI0VYAEcYk4W2yhLkakFVXNdCd7U5zftdHvgBTLFzkgf_X3n9_uHOvWJpGVVZJ9AyOMDZuIW3iEV0j7ISR3CabTSahQlucoCbmMmguD3gbaoNtECRE5TsHPKo9O69v8bqJj2pxl-emM_-qKQP8n_lN1pn6jrhU1XAxDdXXHpsDxG_wRRc"/>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- NavigationDrawer -->
+<nav class="hidden md:flex flex-col py-stack-md px-4 border-r border-outline-variant bg-surface w-[280px]">
+<div class="mb-8 px-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary font-bold">A</div>
+<div>
+<p class="font-label-md text-label-md font-black text-on-surface">Admin Console</p>
+<p class="text-[10px] text-on-surface-variant">v2.4.0-stable</p>
+</div>
+</div>
+</div>
+<ul class="space-y-1">
+<li class="flex items-center gap-3 px-3 py-2 text-primary font-bold border-l-2 border-secondary bg-surface-container-low transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</li>
+<li class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined" data-icon="api">api</span>
+<span class="font-label-md text-label-md">Integrations</span>
+</li>
+<li class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined" data-icon="pulse">switch_account</span>
+<span class="font-label-md text-label-md">Live Logs</span>
+</li>
+<li class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span class="font-label-md text-label-md">Endpoints</span>
+</li>
+<li class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-all duration-200 ease-in-out cursor-pointer">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</li>
+</ul>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8 custom-scrollbar">
+<div class="max-w-[1440px] mx-auto space-y-gutter">
+<!-- Hero Bento Section -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- High Performance Hero Card -->
+<div class="md:col-span-2 bg-white border border-outline-variant p-padding-card rounded-lg relative overflow-hidden flex flex-col justify-between h-64 group">
+<div class="absolute inset-0 opacity-10 group-hover:opacity-15 transition-opacity">
+
+</div>
+<div class="relative z-10">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Global System Performance</p>
+<h2 class="font-display text-display text-primary">Healthy</h2>
+</div>
+<div class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary status-pulse"></span>
+<span class="font-label-md text-label-md">LIVE</span>
+</div>
+</div>
+</div>
+<div class="relative z-10 grid grid-cols-2 gap-4">
+<div>
+<p class="text-on-surface-variant font-label-md text-label-md mb-1">Success Rate</p>
+<p class="text-headline-lg font-headline-lg font-bold text-primary">99.98%</p>
+<div class="w-full h-1 bg-surface-container-high mt-2 rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[99.9%]"></div>
+</div>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-md text-label-md mb-1">Avg Latency</p>
+<p class="text-headline-lg font-headline-lg font-bold text-primary">24ms</p>
+<div class="w-full h-1 bg-surface-container-high mt-2 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[15%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Uptime Metric Card -->
+<div class="bg-white border border-outline-variant p-padding-card rounded-lg flex flex-col justify-center h-64 border-l-4 border-l-secondary">
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">Service Uptime</p>
+<p class="text-display text-display text-primary font-bold">99.999%</p>
+<p class="text-body-md text-body-md text-on-surface-variant mt-4">Last 30 days. No incidents reported in this period.</p>
+<div class="mt-6 flex gap-1">
+<!-- Simulating Uptime Bar -->
+<div class="h-8 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-8 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-8 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-8 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-8 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-8 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-8 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-8 flex-1 bg-secondary rounded-sm opacity-50"></div>
+</div>
+</div>
+</section>
+<!-- Live Feed Section -->
+<section class="grid grid-cols-1 gap-gutter">
+<div class="bg-white border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="p-padding-card border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+<div>
+<h3 class="font-headline-md text-headline-md text-primary">Live Activity Feed</h3>
+<p class="text-body-md text-body-md text-on-surface-variant">Real-time HTTP request logging</p>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 border border-outline-variant rounded-lg text-primary font-label-md text-label-md flex items-center gap-2 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="filter_list">filter_list</span>
+                                    Filter
+                                </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md text-label-md flex items-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]" data-icon="download">download</span>
+                                    Export Logs
+                                </button>
+</div>
+</div>
+<!-- Log Feed Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md border-b border-outline-variant">
+<tr>
+<th class="px-6 py-4 font-semibold uppercase tracking-wider">Timestamp</th>
+<th class="px-6 py-4 font-semibold uppercase tracking-wider">Method</th>
+<th class="px-6 py-4 font-semibold uppercase tracking-wider">Endpoint</th>
+<th class="px-6 py-4 font-semibold uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 font-semibold uppercase tracking-wider">Latency</th>
+<th class="px-6 py-4 font-semibold uppercase tracking-wider">Origin</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 font-mono-data text-mono-data text-on-surface-variant">2023-10-24 14:22:01.034</td>
+<td class="px-6 py-4"><span class="px-2 py-1 bg-surface-container-highest text-primary font-bold rounded text-[10px]">GET</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data text-primary">/api/v1/user/profile</td>
+<td class="px-6 py-4"><span class="flex items-center gap-2 text-secondary font-bold text-label-md"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 200 OK</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data">12ms</td>
+<td class="px-6 py-4 text-on-surface-variant text-body-md">us-east-1</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 font-mono-data text-mono-data text-on-surface-variant">2023-10-24 14:22:01.012</td>
+<td class="px-6 py-4"><span class="px-2 py-1 bg-secondary-container text-on-secondary-container font-bold rounded text-[10px]">POST</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data text-primary">/api/v1/transaction/execute</td>
+<td class="px-6 py-4"><span class="flex items-center gap-2 text-secondary font-bold text-label-md"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 201 Created</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data font-bold">45ms</td>
+<td class="px-6 py-4 text-on-surface-variant text-body-md">eu-central-1</td>
+</tr>
+<tr class="hover:bg-error-container/10 transition-colors group">
+<td class="px-6 py-4 font-mono-data text-mono-data text-on-surface-variant">2023-10-24 14:21:59.876</td>
+<td class="px-6 py-4"><span class="px-2 py-1 bg-surface-container-highest text-primary font-bold rounded text-[10px]">GET</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data text-primary">/api/v1/admin/config</td>
+<td class="px-6 py-4"><span class="flex items-center gap-2 text-error font-bold text-label-md"><span class="w-1.5 h-1.5 rounded-full bg-error"></span> 404 Not Found</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data">8ms</td>
+<td class="px-6 py-4 text-on-surface-variant text-body-md">ap-southeast-1</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 font-mono-data text-mono-data text-on-surface-variant">2023-10-24 14:21:58.432</td>
+<td class="px-6 py-4"><span class="px-2 py-1 bg-primary text-on-primary font-bold rounded text-[10px]">PUT</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data text-primary">/api/v1/resource/update/8821</td>
+<td class="px-6 py-4"><span class="flex items-center gap-2 text-secondary font-bold text-label-md"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 200 OK</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data">32ms</td>
+<td class="px-6 py-4 text-on-surface-variant text-body-md">us-west-2</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 font-mono-data text-mono-data text-on-surface-variant">2023-10-24 14:21:57.901</td>
+<td class="px-6 py-4"><span class="px-2 py-1 bg-surface-container-highest text-primary font-bold rounded text-[10px]">GET</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data text-primary">/api/v1/metrics/heartbeat</td>
+<td class="px-6 py-4"><span class="flex items-center gap-2 text-secondary font-bold text-label-md"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 200 OK</span></td>
+<td class="px-6 py-4 font-mono-data text-mono-data">4ms</td>
+<td class="px-6 py-4 text-on-surface-variant text-body-md">global-edge</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-outline-variant bg-surface-container-low text-center">
+<button class="text-primary font-label-md text-label-md hover:underline">View All Historical Logs</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<footer class="fixed bottom-0 w-full z-50 md:hidden bg-surface border-t border-outline-variant shadow-md flex justify-around items-center h-16 pb-safe">
+<div class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active:scale-95 transition-transform cursor-pointer">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span class="font-label-md text-label-md">Stats</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 active:scale-95 transition-transform cursor-pointer">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+<span class="font-label-md text-label-md">API</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 active:scale-95 transition-transform cursor-pointer">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-label-md text-label-md">Logs</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 active:scale-95 transition-transform cursor-pointer">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-md text-label-md">Account</span>
+</div>
+</footer>
+<script>
+        // Micro-interaction for log row highlight
+        document.querySelectorAll('tbody tr').forEach(row => {
+            row.addEventListener('click', () => {
+                row.classList.add('bg-surface-container');
+                setTimeout(() => {
+                    row.classList.remove('bg-surface-container');
+                }, 200);
+            });
+        });
+
+        // Simulating live data injection every 5 seconds
+        setInterval(() => {
+            const table = document.querySelector('tbody');
+            const newRow = table.rows[0].cloneNode(true);
+            const now = new Date();
+            const timeStr = now.toISOString().replace('T', ' ').substring(0, 23);
+            
+            newRow.cells[0].textContent = timeStr;
+            newRow.style.opacity = '0';
+            newRow.style.transform = 'translateY(-10px)';
+            newRow.style.transition = 'all 0.4s ease-out';
+            
+            table.prepend(newRow);
+            
+            if(table.rows.length > 8) {
+                table.deleteRow(8);
+            }
+
+            requestAnimationFrame(() => {
+                newRow.style.opacity = '1';
+                newRow.style.transform = 'translateY(0)';
+            });
+        }, 5000);
+    </script>
+</body></html>
