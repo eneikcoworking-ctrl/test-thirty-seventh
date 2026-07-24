@@ -7,8 +7,12 @@ import com.eneik.generated.model.SenderType;
 import com.eneik.generated.repository.DialogRepository;
 import com.eneik.generated.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -66,5 +70,28 @@ public class DialogService {
 
         dialog.setAiState(newAiState);
         return dialogRepository.save(dialog);
+    }
+
+    /**
+     * Finds a dialog by its unique database identifier.
+     */
+    public Optional<Dialog> findDialogById(Long id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return dialogRepository.findById(id);
+    }
+
+    /**
+     * Retrieves dialogs with pagination to prevent out-of-memory errors as the database grows.
+     * Enforces a maximum page size constraint of 50.
+     */
+    public Page<Dialog> findAllDialogs(Pageable pageable) {
+        if (pageable == null) {
+            pageable = PageRequest.of(0, 50);
+        } else if (pageable.getPageSize() > 50) {
+            pageable = PageRequest.of(pageable.getPageNumber(), 50, pageable.getSort());
+        }
+        return dialogRepository.findAll(pageable);
     }
 }
