@@ -15,9 +15,9 @@ import java.time.LocalDateTime;
 
 @Service
 @Transactional
-public class CampaignMessageDispatcherService {
+public class DispatchService {
 
-    private static final Logger log = LoggerFactory.getLogger(CampaignMessageDispatcherService.class);
+    private static final Logger log = LoggerFactory.getLogger(DispatchService.class);
 
     private final TgAccountRepository tgAccountRepository;
     private final OutboundDispatchRepository outboundDispatchRepository;
@@ -26,9 +26,9 @@ public class CampaignMessageDispatcherService {
     @Value("${app.rate-limiting.daily-limit:15}")
     private int dailyLimit = 15;
 
-    public CampaignMessageDispatcherService(TgAccountRepository tgAccountRepository,
-                                           OutboundDispatchRepository outboundDispatchRepository,
-                                           TelegramBridgeService telegramBridgeService) {
+    public DispatchService(TgAccountRepository tgAccountRepository,
+                           OutboundDispatchRepository outboundDispatchRepository,
+                           TelegramBridgeService telegramBridgeService) {
         this.tgAccountRepository = tgAccountRepository;
         this.outboundDispatchRepository = outboundDispatchRepository;
         this.telegramBridgeService = telegramBridgeService;

@@ -21,10 +21,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = Application.class)
 @ActiveProfiles("test")
-public class CampaignMessageDispatcherServiceTest {
+public class DispatchServiceIntegrationTest {
 
     @Autowired
-    private CampaignMessageDispatcherService campaignMessageDispatcherService;
+    private DispatchService dispatchService;
 
     @Autowired
     private TgAccountRepository tgAccountRepository;
@@ -63,7 +63,7 @@ public class CampaignMessageDispatcherServiceTest {
         String campaignId = campaign.getId();
 
         // When a message is dispatched
-        OutboundDispatch dispatch = campaignMessageDispatcherService.dispatchMessage(
+        OutboundDispatch dispatch = dispatchService.dispatchMessage(
                 accountId,
                 campaignId,
                 11111L,
@@ -91,15 +91,15 @@ public class CampaignMessageDispatcherServiceTest {
     @Test
     public void testDispatchHaltsWhenLimitIsReached() {
         // Given we set the daily limit to exactly 3 for testing
-        campaignMessageDispatcherService.setDailyLimit(3);
+        dispatchService.setDailyLimit(3);
 
         Long accountId = activeAccount.getId();
         String campaignId = campaign.getId();
 
         // When 3 messages are dispatched successfully
-        assertNotNull(campaignMessageDispatcherService.dispatchMessage(accountId, campaignId, 11111L, "@user1", "Message 1"));
-        assertNotNull(campaignMessageDispatcherService.dispatchMessage(accountId, campaignId, 22222L, "@user2", "Message 2"));
-        assertNotNull(campaignMessageDispatcherService.dispatchMessage(accountId, campaignId, 33333L, "@user3", "Message 3"));
+        assertNotNull(dispatchService.dispatchMessage(accountId, campaignId, 11111L, "@user1", "Message 1"));
+        assertNotNull(dispatchService.dispatchMessage(accountId, campaignId, 22222L, "@user2", "Message 2"));
+        assertNotNull(dispatchService.dispatchMessage(accountId, campaignId, 33333L, "@user3", "Message 3"));
 
         // Then current count is 3
         long currentCount = outboundDispatchRepository.countByTgAccountIdAndDispatchedAtAfter(accountId, LocalDateTime.now().minusHours(24));
@@ -107,7 +107,7 @@ public class CampaignMessageDispatcherServiceTest {
 
         // When the 4th dispatch is attempted, it must throw IllegalStateException and halt dispatches
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
-            campaignMessageDispatcherService.dispatchMessage(accountId, campaignId, 44444L, "@user4", "Message 4");
+            dispatchService.dispatchMessage(accountId, campaignId, 44444L, "@user4", "Message 4");
         });
 
         assertEquals("Daily outbound message limit reached for account: " + accountId, exception.getMessage());
@@ -119,7 +119,7 @@ public class CampaignMessageDispatcherServiceTest {
     @Test
     public void testSliding24HourWindowAllowsOlderDispatches() {
         // Given we set the daily limit to 2
-        campaignMessageDispatcherService.setDailyLimit(2);
+        dispatchService.setDailyLimit(2);
 
         Long accountId = activeAccount.getId();
         String campaignId = campaign.getId();
@@ -139,11 +139,11 @@ public class CampaignMessageDispatcherServiceTest {
         assertEquals(1, currentCount);
 
         // We can successfully dispatch 1 more message (reaching the limit of 2)
-        assertNotNull(campaignMessageDispatcherService.dispatchMessage(accountId, campaignId, 55555L, "@user5", "Message 5"));
+        assertNotNull(dispatchService.dispatchMessage(accountId, campaignId, 55555L, "@user5", "Message 5"));
 
         // A subsequent dispatch will exceed the limit and thus throws an exception
         assertThrows(IllegalStateException.class, () -> {
-            campaignMessageDispatcherService.dispatchMessage(accountId, campaignId, 66666L, "@user6", "Message 6");
+            dispatchService.dispatchMessage(accountId, campaignId, 66666L, "@user6", "Message 6");
         });
     }
 
@@ -160,7 +160,7 @@ public class CampaignMessageDispatcherServiceTest {
 
         // When trying to dispatch, an IllegalStateException must be thrown
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
-            campaignMessageDispatcherService.dispatchMessage(inactiveId, campaignId, 77777L, "@user7", "Message 7");
+            dispatchService.dispatchMessage(inactiveId, campaignId, 77777L, "@user7", "Message 7");
         });
 
         assertTrue(exception.getMessage().contains("Telegram Account is not active"));
