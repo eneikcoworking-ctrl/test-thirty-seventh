@@ -1,14 +1,3 @@
 # Eneik orchestrator internal record files - never part of product code
 .eneik/
-
-# Maven build directory
 target/
-
-# Local database file
-data/
-*.mv.db
-*.trace.db
-
-# OS files
-.DS_Store
-Thumbs.db
