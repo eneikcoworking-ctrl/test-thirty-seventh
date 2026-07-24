@@ -26,6 +26,12 @@ public class TgAccount {
     @Column(name = "status", nullable = false)
     private String status;
 
+    @Column(name = "daily_sent_count", nullable = false)
+    private Integer dailySentCount = 0;
+
+    @Column(name = "daily_limit", nullable = false)
+    private Integer dailyLimit = 20;
+
     @ManyToOne
     @JoinColumn(name = "proxy_id")
     private Proxy proxy;
@@ -48,6 +54,12 @@ public class TgAccount {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public Integer getDailySentCount() { return dailySentCount; }
+    public void setDailySentCount(Integer dailySentCount) { this.dailySentCount = dailySentCount; }
+
+    public Integer getDailyLimit() { return dailyLimit; }
+    public void setDailyLimit(Integer dailyLimit) { this.dailyLimit = dailyLimit; }
 
     public Proxy getProxy() { return proxy; }
     public void setProxy(Proxy proxy) { this.proxy = proxy; }
