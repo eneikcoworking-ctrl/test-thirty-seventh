@@ -162,6 +162,60 @@ paths:
         '500':
           description: Internal Server Error
 
+  /api/v1/scheduler/delay:
+    post:
+      summary: Compute action delay
+      description: Computes action delay using an exponential distribution based on the provided mean delay.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '200':
+          description: Delay computed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionDelayResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/campaigns/assignments:
+    post:
+      summary: Assign campaign to account
+      description: Validates and assigns a campaign to a specific Telegram account, rejecting accounts under 1 month old.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignAssignmentRequest'
+      responses:
+        '201':
+          description: Campaign successfully assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignAssignmentResponse'
+        '400':
+          description: Account is too young or invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     Conversation:
@@ -364,3 +418,67 @@ components:
         status:
           type: string
           enum: [ONLINE, OFFLINE, BUSY]
+
+    ActionRequest:
+      type: object
+      required:
+        - actionType
+        - meanDelaySeconds
+      properties:
+        actionType:
+          type: string
+          description: The type of action being scheduled
+        meanDelaySeconds:
+          type: number
+          format: double
+          description: The expected mean (average) delay in seconds
+
+    ActionDelayResponse:
+      type: object
+      required:
+        - delaySeconds
+      properties:
+        delaySeconds:
+          type: number
+          format: double
+          description: The computed randomized delay in seconds
+
+    CampaignAssignmentRequest:
+      type: object
+      required:
+        - campaignId
+        - accountId
+        - accountType
+      properties:
+        campaignId:
+          type: string
+          format: uuid
+          description: Unique identifier of the campaign
+        accountId:
+          type: integer
+          format: int64
+          description: ID of the account to assign
+        accountType:
+          type: string
+          enum: [TG_ACCOUNT, WARM_UP_ACCOUNT]
+          description: Type of the account to be assigned
+
+    CampaignAssignmentResponse:
+      type: object
+      required:
+        - campaignId
+        - accountId
+        - accountType
+        - status
+      properties:
+        campaignId:
+          type: string
+          format: uuid
+        accountId:
+          type: integer
+          format: int64
+        accountType:
+          type: string
+        status:
+          type: string
+          description: Status of the assignment (e.g. ASSIGNED)
