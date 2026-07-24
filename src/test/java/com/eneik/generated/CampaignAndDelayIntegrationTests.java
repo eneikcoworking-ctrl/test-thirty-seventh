@@ -17,13 +17,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.Random;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
@@ -31,11 +36,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = Application.class)
+@SpringBootTest(classes = {Application.class, CampaignAndDelayIntegrationTests.Config.class})
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
 public class CampaignAndDelayIntegrationTests {
+
+    @TestConfiguration
+    static class Config {
+        @Bean
+        @Primary
+        public DelayCalculationService fixedDelayCalculationService() {
+            return new DelayCalculationService(new Random(42L));
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -168,12 +182,17 @@ public class CampaignAndDelayIntegrationTests {
     public void testSchedulerControllerApi() throws Exception {
         ActionRequest request = new ActionRequest("TYPING", 120.0);
 
-        mockMvc.perform(post("/api/v1/scheduler/delay")
+        MvcResult result = mockMvc.perform(post("/api/v1/scheduler/delay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.delaySeconds", notNullValue()))
-                .andExpect(jsonPath("$.delaySeconds", greaterThanOrEqualTo(0.0)));
+                .andReturn();
+
+        String content = result.getResponse().getContentAsString();
+        ActionDelayResponse response = objectMapper.readValue(content, ActionDelayResponse.class);
+
+        assertNotNull(response.getDelaySeconds(), "Delay seconds should not be null");
+        assertTrue(response.getDelaySeconds() >= 0.0, "Delay seconds should be non-negative");
     }
 
     @Test
