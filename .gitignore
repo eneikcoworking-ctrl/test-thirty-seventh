@@ -11,4 +11,3 @@ target/
 # Database files
 data/
 *.db
-target/
