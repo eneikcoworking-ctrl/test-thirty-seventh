@@ -12,4 +12,3 @@ target/
 data/
 *.db
 *.log
-target/

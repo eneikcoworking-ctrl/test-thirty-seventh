@@ -5,5 +5,4 @@ public enum SenderType {
     AI,
     SYSTEM,
     HUMAN_REPRESENTATIVE
-    SYSTEM
 }
