@@ -1,0 +1,46 @@
+{
+  "gaps": [
+    {
+      "title": "Redis Integration for Task Queuing and Rate-Limiting",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When executing cold outreach campaigns across a pool of warm Telegram accounts, I want to manage message dispatches and rate limiters via Redis, so that the system operates resiliently in the background without locking application threads or triggering Telegram anti-spam blocks.",
+      "acceptanceCriteria": "Given campaigns configured with outbound rate limits, When messages are scheduled or dispatched, Then they must be queued in Redis as background tasks and rate-limited via a Redis-backed rate limiter.",
+      "reason": "literal brief requirement: Section 2 (Tech Stack & Architecture) explicitly specifies using Redis for 'task queues and rate-limiting', which is entirely missing from the codebase."
+    },
+    {
+      "title": "Telegram Inbound Event Listener and Background Response Worker",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When leads reply to campaign outreach messages on our connected Telegram accounts, I want the system to listen for these inbound events and trigger AI evaluation of their responses automatically, so that natural-sounding dialog continues without manual polling or client-side triggers.",
+      "acceptanceCriteria": "Given active, onboarded Telegram accounts, When an inbound reply is received on any account from a target lead, Then a background event worker must intercept the event and trigger the AI evaluation flow.",
+      "reason": "literal brief requirement: FEAT-AI-01 explicitly demands an 'Inbound Event Listener: Background worker that monitors connected accounts for incoming responses and triggers AI evaluation,' which is not implemented in the backend."
+    },
+    {
+      "title": "Intent and Keyword Stop-Triggers with Dialogue Turn Limit",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When an active AI-driven dialogue detects positive intents (e.g., booking requests, contact sharing) or negative objections, or reaches the maximum allowed conversation turns, I want the AI response generator to automatically pause, so that a human operator can seamlessly hijack and handle the lead.",
+      "acceptanceCriteria": "Given an active dialogue between a lead and the AI agent, When the lead's message contains stop keywords/intents or the turn count exceeds the configured limit, Then the automated AI outreach must pause and the conversation must halt automated generation.",
+      "reason": "literal brief requirement: FEAT-AI-04 explicitly specifies detecting intent flags (booking request, contact sharing, objection) or reaching a maximum number of dialogue turns (e.g. 5 turns) to pause AI generation automatically, but no such NLP or turn-tracking logic is present in the main CRM service."
+    },
+    {
+      "title": "Automated CRM Human Escalation and Handoff Trigger",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When a dialogue stop-trigger fires or a lead requests human intervention, I want the system to transition the conversation status to 'ESCALATED' / 'Awaiting Human Intervention', so that the unified inbox alerts CRM operators of a required takeover.",
+      "acceptanceCriteria": "Given a conversation that has triggered a stop-trigger or a human takeover requirement, When the trigger occurs, Then the conversation's status in the database must transition to 'ESCALATED' ('Awaiting Human Intervention') to alert manual operators.",
+      "reason": "literal brief requirement: FEAT-AI-05 explicitly specifies marking dialogue status as 'Awaiting Human Intervention' (ESCALATED) and halting automated outreach once a stop-trigger fires, which is not implemented in any backend service."
+    },
+    {
+      "title": "Automated Background Session Warm-Up Engine",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When registering new Telegram accounts, I want the system to automate background behaviors such as channel subscriptions, post reading, and online presence simulation, so that we can steadily build the account trust score prior to starting campaign dispatches.",
+      "acceptanceCriteria": "Given an account in warm-up state, When the warm-up cycle is active, Then a background process must periodically simulate user actions (e.g., subscribing to channels, reading posts, maintaining online status) to increase trust scores.",
+      "reason": "literal brief requirement: FEAT-BAN-01 explicitly requires 'Session Warm-Up Automation' with background activities (subscribing to channels, reading posts, etc.), which is not implemented beyond simple database status tracking."
+    },
+    {
+      "title": "Secure Dashboard Authentication and User Management",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "As an administrator self-hosting the platform, I want to authenticate via secure credentials, so that unauthorized individuals are blocked from accessing or managing sensitive Telegram accounts, session data, proxies, and live chat dialogs.",
+      "acceptanceCriteria": "Given any unauthenticated user, When they attempt to access dashboard endpoints or load the UI, Then the system must deny access and redirect them to a secure login prompt, requiring correct admin credentials to proceed.",
+      "reason": "domain-standard expectation: A private self-hosted SaaS-style admin panel handling sensitive credentials (like Telegram session files and proxies) implicitly requires secure authentication and user session management, as also outlined by the Users entity in Section 4 (Database Schema Concept)."
+    }
+  ]
+}
