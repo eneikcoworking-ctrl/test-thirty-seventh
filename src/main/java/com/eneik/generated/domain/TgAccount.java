@@ -30,12 +30,6 @@ public class TgAccount {
     @JoinColumn(name = "proxy_id")
     private Proxy proxy;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
     @Column(name = "campaign_id", length = 36)
     private String campaignId;
 
@@ -44,6 +38,12 @@ public class TgAccount {
 
     @Column(name = "daily_dispatch_count", nullable = false)
     private Integer dailyDispatchCount = 0;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
     // Getters and Setters
     public Long getId() { return id; }
