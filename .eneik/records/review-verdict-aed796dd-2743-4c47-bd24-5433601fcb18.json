@@ -1,0 +1,11 @@
+{"verdicts": [
+  {
+    "sourceIndex": 0,
+    "verdict": "block",
+    "criticalReason": "The PR violates boundaries by committing and modifying files under the `.eneik/` directory (specifically creating `.eneik/records/review-verdict-20260724-085816527.json` and `.eneik/records/review-verdict-c1735525-46b8-44e4-90c4-975079dd3862.json`), which is a direct violation of PR Boundaries and causes automatic rejection.",
+    "concerns": [
+      "The PR commits a massive amount of out-of-scope files that are completely unrelated to the 'Manual takeover hijack logic' (e.g., account onboarding controllers, scheduler controllers, and campaign assignment services).",
+      "ProxyValidationService.java runs real TCP socket connection checks via Socket.connect, which can lead to hanging tests or unexpected errors in network-isolated test environments."
+    ]
+  }
+]}
