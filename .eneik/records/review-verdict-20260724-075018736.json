@@ -1,0 +1,4 @@
+{"verdicts": [
+  {"sourceIndex": 0, "verdict": "block", "criticalReason": "The PR commits multiple internal orchestrator bookkeeping files under the `.eneik/` directory (such as `.eneik/records/...` and `.eneik/review-verdict.json`), which is a direct violation of the PR Boundaries and causes automatic rejection.", "concerns": []},
+  {"sourceIndex": 1, "verdict": "block", "criticalReason": "The PR commits multiple internal orchestrator bookkeeping files under the `.eneik/` directory (such as `.eneik/records/...` and `.eneik/review-verdict.json`), which is a direct violation of the PR Boundaries and causes automatic rejection.", "concerns": []}
+]}
