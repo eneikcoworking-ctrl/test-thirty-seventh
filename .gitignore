@@ -2,3 +2,7 @@
 .eneik/
 target/
 data/
+
+# Local databases
+data/
+*.db
