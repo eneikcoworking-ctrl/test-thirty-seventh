@@ -1,7 +1,13 @@
 # Eneik orchestrator internal record files - never part of product code
 .eneik/
-target/
 
-# Local databases
+# Node modules and build artifacts
+node_modules/
+frontend/node_modules/
+frontend/dist/
+target/
+*.log
+
+# Database files
 data/
 *.db
