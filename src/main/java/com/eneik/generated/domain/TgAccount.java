@@ -30,9 +30,6 @@ public class TgAccount {
     @JoinColumn(name = "proxy_id")
     private Proxy proxy;
 
-    @Column(name = "daily_limit")
-    private Integer dailyLimit = 20;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -60,7 +57,4 @@ public class TgAccount {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-
-    public Integer getDailyLimit() { return dailyLimit; }
-    public void setDailyLimit(Integer dailyLimit) { this.dailyLimit = dailyLimit; }
 }

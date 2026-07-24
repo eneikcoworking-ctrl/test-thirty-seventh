@@ -1,8 +1,7 @@
 # Eneik orchestrator internal record files - never part of product code
 .eneik/
 target/
-data/
 
-# Local databases
+frontend/node_modules/
+frontend/.svelte-kit/
 data/
-*.db
