@@ -1,2 +1,11 @@
 # Eneik orchestrator internal record files - never part of product code
 .eneik/
+
+# Maven build outputs
+target/
+
+# Local databases
+data/
+*.db
+*.log
+*.tmp
