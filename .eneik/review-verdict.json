@@ -1,11 +1,13 @@
-{"verdicts": [
-  {
-    "sourceIndex": 0,
-    "verdict": "approve",
-    "criticalReason": "",
-    "concerns": [
-      "The UI currently uses mock hardcoded chat and message data in `App.svelte` instead of fetching from real backend API endpoints.",
-      "The layout imports Google Fonts and Material Symbols directly via HTML `link` tags; using a local or bundled asset approach would be more robust for self-hosted networks."
-    ]
-  }
-]}
+{
+  "verdicts": [
+    {
+      "sourceIndex": 0,
+      "verdict": "approve",
+      "criticalReason": "",
+      "concerns": [
+        "The `ImportLeadsRequest` uses a raw string payload `content` for CSV data; a multipart/form-data upload might be a more scalable alternative in future iterations.",
+        "Error handling responses for the new endpoints use the general `ErrorResponse` schema, but do not specify specific `errorCode` values for validation/not-found scenarios."
+      ]
+    }
+  ]
+}
