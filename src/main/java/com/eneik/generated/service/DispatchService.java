@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Transactional
@@ -63,15 +64,43 @@ public class DispatchService {
 
         log.debug("Current outbound count for account {} in the last 24h: {} (Limit: {})", tgAccountId, currentCount, dailyLimit);
 
-        if (currentCount >= dailyLimit) {
-            log.warn("Halt dispatch: Telegram Account {} has reached its daily rate limit of {} dispatches.", tgAccountId, dailyLimit);
-            throw new IllegalStateException("Daily outbound message limit reached for account: " + tgAccountId);
+        boolean limitReached = currentCount >= dailyLimit || tgAccount.getDailyDispatchCount() >= tgAccount.getDailyDispatchLimit();
+
+        if (limitReached) {
+            log.info("Daily outbound message limit reached for account: {}. Attempting dynamic failover.", tgAccountId);
+
+            TgAccount candidateAccount = null;
+            if (campaignId != null && !campaignId.trim().isEmpty()) {
+                List<TgAccount> campaignAccounts = tgAccountRepository.findByCampaignIdAndStatusIgnoreCaseOrderByIdAsc(campaignId, "Active");
+                for (TgAccount candidate : campaignAccounts) {
+                    if (candidate.getId().equals(tgAccountId)) {
+                        continue;
+                    }
+                    long candidateCount = outboundDispatchRepository.countByTgAccountIdAndDispatchedAtAfter(candidate.getId(), threshold);
+                    if (candidateCount < dailyLimit && candidate.getDailyDispatchCount() < candidate.getDailyDispatchLimit()) {
+                        candidateAccount = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (candidateAccount != null) {
+                log.info("Failover transition: Switching dispatch task from account ID {} to available account ID {} for campaign {}", tgAccountId, candidateAccount.getId(), campaignId);
+                tgAccount = candidateAccount;
+            } else {
+                log.warn("Rate limit reached for account {} and no other available accounts in campaign {}. Pausing dispatch gracefully.", tgAccountId, campaignId);
+                return null;
+            }
         }
 
         // 3. Dispatch the message via the Telegram bridge layer
         telegramBridgeService.dispatchMessage(telegramChatId, text);
 
-        // 4. Save and return the dispatch log record
+        // 4. Update the account's daily dispatch count
+        tgAccount.setDailyDispatchCount(tgAccount.getDailyDispatchCount() + 1);
+        tgAccountRepository.save(tgAccount);
+
+        // 5. Save and return the dispatch log record
         OutboundDispatch outboundDispatch = new OutboundDispatch(tgAccount, campaignId, recipientPhoneOrUsername);
         return outboundDispatchRepository.save(outboundDispatch);
     }

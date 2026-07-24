@@ -89,7 +89,7 @@ public class DispatchServiceIntegrationTest {
     }
 
     @Test
-    public void testDispatchHaltsWhenLimitIsReached() {
+    public void testDispatchPausesGracefullyWhenLimitIsReachedAndNoOtherAccounts() {
         // Given we set the daily limit to exactly 3 for testing
         dispatchService.setDailyLimit(3);
 
@@ -105,12 +105,9 @@ public class DispatchServiceIntegrationTest {
         long currentCount = outboundDispatchRepository.countByTgAccountIdAndDispatchedAtAfter(accountId, LocalDateTime.now().minusHours(24));
         assertEquals(3, currentCount);
 
-        // When the 4th dispatch is attempted, it must throw IllegalStateException and halt dispatches
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
-            dispatchService.dispatchMessage(accountId, campaignId, 44444L, "@user4", "Message 4");
-        });
-
-        assertEquals("Daily outbound message limit reached for account: " + accountId, exception.getMessage());
+        // When the 4th dispatch is attempted, it must return null (graceful pause) without throwing an exception
+        OutboundDispatch result = dispatchService.dispatchMessage(accountId, campaignId, 44444L, "@user4", "Message 4");
+        assertNull(result, "Should return null (pause gracefully) when the pool is exhausted");
 
         // And the 4th dispatch is NOT saved to the database (count remains 3)
         assertEquals(3, outboundDispatchRepository.count());
@@ -141,10 +138,57 @@ public class DispatchServiceIntegrationTest {
         // We can successfully dispatch 1 more message (reaching the limit of 2)
         assertNotNull(dispatchService.dispatchMessage(accountId, campaignId, 55555L, "@user5", "Message 5"));
 
-        // A subsequent dispatch will exceed the limit and thus throws an exception
-        assertThrows(IllegalStateException.class, () -> {
-            dispatchService.dispatchMessage(accountId, campaignId, 66666L, "@user6", "Message 6");
-        });
+        // A subsequent dispatch will exceed the limit and thus returns null (gracefully pauses)
+        assertNull(dispatchService.dispatchMessage(accountId, campaignId, 66666L, "@user6", "Message 6"));
+    }
+
+    @Test
+    public void testDynamicFailoverToNextAvailableAccount() {
+        // Given we set the daily limit to exactly 2
+        dispatchService.setDailyLimit(2);
+
+        String campaignId = campaign.getId();
+
+        // Account A is the original activeAccount with limit 2 (already has 1 recent dispatch)
+        Long accountAId = activeAccount.getId();
+        assertNotNull(dispatchService.dispatchMessage(accountAId, campaignId, 11111L, "@user1", "Message A1"));
+
+        // Let's create Account B (active, belongs to the same campaign, has daily dispatch capacity)
+        TgAccount accountB = new TgAccount();
+        accountB.setPhoneNumber("+1234567891");
+        accountB.setStatus("Active");
+        accountB.setCampaignId(campaignId);
+        accountB.setDailyDispatchCount(0);
+        accountB.setDailyDispatchLimit(10);
+        accountB = tgAccountRepository.save(accountB);
+
+        // When we dispatch the 2nd message via Account A, it succeeds and reaches Account A's limit (2 out of 2)
+        assertNotNull(dispatchService.dispatchMessage(accountAId, campaignId, 22222L, "@user2", "Message A2"));
+
+        // Now, when we attempt to dispatch a 3rd message specifying Account A,
+        // it should automatically failover to Account B (since Account B has capacity)
+        OutboundDispatch dispatch = dispatchService.dispatchMessage(
+                accountAId,
+                campaignId,
+                33333L,
+                "@user3",
+                "Message B1"
+        );
+
+        // Then:
+        // 1. The message is successfully dispatched and returned
+        assertNotNull(dispatch);
+
+        // 2. The dispatchedBy account is Account B
+        assertEquals(accountB.getId(), dispatch.getTgAccount().getId(), "Should have failed over to Account B");
+
+        // 3. Account B's dispatch count is incremented to 1
+        TgAccount updatedB = tgAccountRepository.findById(accountB.getId()).orElseThrow();
+        assertEquals(1, updatedB.getDailyDispatchCount());
+
+        // 4. Account A's dispatch count remains 2
+        TgAccount updatedA = tgAccountRepository.findById(accountAId).orElseThrow();
+        assertEquals(2, updatedA.getDailyDispatchCount());
     }
 
     @Test
