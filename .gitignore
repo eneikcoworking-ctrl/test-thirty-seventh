@@ -1,12 +1,17 @@
 # Eneik orchestrator internal record files - never part of product code
 .eneik/
 
-# Maven build outputs
+# Node modules and build artifacts
+node_modules/
+frontend/node_modules/
+frontend/dist/
 target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
 
-# Local databases
+# Database files
 data/
 *.db
-*.log
-*.tmp
-target/
