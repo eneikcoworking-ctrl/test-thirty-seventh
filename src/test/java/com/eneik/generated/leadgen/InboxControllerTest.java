@@ -1,12 +1,10 @@
 package com.eneik.generated.leadgen;
 
-import com.eneik.generated.leadgen.controller.ManualMessageRequestDto;
+import com.eneik.generated.leadgen.controller.SendMessageRequestDto;
 import com.eneik.generated.leadgen.model.Conversation;
-import com.eneik.generated.leadgen.model.Lead;
-import com.eneik.generated.leadgen.model.TelegramAccount;
+import com.eneik.generated.leadgen.model.ConversationMessage;
+import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
-import com.eneik.generated.leadgen.repository.LeadRepository;
-import com.eneik.generated.leadgen.repository.TelegramAccountRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -33,83 +32,103 @@ public class InboxControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private TelegramAccountRepository telegramAccountRepository;
-
-    @Autowired
-    private LeadRepository leadRepository;
-
-    @Autowired
     private ConversationRepository conversationRepository;
+
+    @Autowired
+    private ConversationMessageRepository conversationMessageRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @BeforeEach
     public void setup() {
+        conversationMessageRepository.deleteAll();
         conversationRepository.deleteAll();
-        leadRepository.deleteAll();
-        telegramAccountRepository.deleteAll();
     }
 
     @Test
-    public void testGetInboxChats_ReturnsConversationsFromAllAccounts() throws Exception {
-        // Given conversations exist across multiple accounts
-        TelegramAccount acc1 = telegramAccountRepository.save(new TelegramAccount("acc_1", "+123456789", "Active"));
-        TelegramAccount acc2 = telegramAccountRepository.save(new TelegramAccount("acc_2", "+987654321", "Active"));
+    public void testGetConversations_ReturnsConversationsFromAllAccounts() throws Exception {
+        OffsetDateTime now = OffsetDateTime.now();
+        // Given conversations exist across multiple channels/accounts
+        Conversation c1 = new Conversation(
+                UUID.randomUUID().toString(),
+                111111L,
+                "John Doe",
+                "john_doe",
+                "+123456789",
+                "ESCALATED",
+                UUID.randomUUID().toString(),
+                now,
+                now
+        );
+        Conversation c2 = new Conversation(
+                UUID.randomUUID().toString(),
+                222222L,
+                "Jane Smith",
+                "jane_smith",
+                "+987654321",
+                "ACTIVE",
+                UUID.randomUUID().toString(),
+                now.minusHours(1),
+                now.minusHours(1)
+        );
 
-        Lead lead1 = leadRepository.save(new Lead("lead_a", "john_doe", "+111222333"));
-        Lead lead2 = leadRepository.save(new Lead("lead_b", "jane_smith", "+444555666"));
+        conversationRepository.save(c1);
+        conversationRepository.save(c2);
 
-        conversationRepository.save(new Conversation("acc_1", "lead_a", "john_doe", "Hello John!", OffsetDateTime.now()));
-        conversationRepository.save(new Conversation("acc_2", "lead_b", "jane_smith", "Hi Jane!", OffsetDateTime.now()));
-
-        // When fetched
+        // When fetched (GET /api/v1/conversations)
         // Then conversations from all accounts are returned
-        mockMvc.perform(get("/api/inbox/chats"))
+        mockMvc.perform(get("/api/v1/conversations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].telegramAccountId", is("acc_1")))
-                .andExpect(jsonPath("$[0].leadUsername", is("john_doe")))
-                .andExpect(jsonPath("$[0].lastMessage", is("Hello John!")))
-                .andExpect(jsonPath("$[1].telegramAccountId", is("acc_2")))
-                .andExpect(jsonPath("$[1].leadUsername", is("jane_smith")))
-                .andExpect(jsonPath("$[1].lastMessage", is("Hi Jane!")));
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.content[0].leadName", is("John Doe")))
+                .andExpect(jsonPath("$.content[1].leadName", is("Jane Smith")));
     }
 
     @Test
     public void testSendManualMessage_DispatchesViaTelegramLayer() throws Exception {
-        // Given a manual message request
-        ManualMessageRequestDto request = new ManualMessageRequestDto("acc_1", "lead_a", "This is a manual sales escalation message");
+        // Given an existing conversation
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                12345L,
+                "Alice Wood",
+                "alice_w",
+                "+111222333",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        SendMessageRequestDto request = new SendMessageRequestDto("Hello Alice! This is manual sales escalation.");
 
         // When sent
-        // Then it is dispatched via the Telegram layer
-        mockMvc.perform(post("/api/inbox/send")
+        // Then it is dispatched via the Telegram layer and successfully saved
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", convId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.telegramAccountId", is("acc_1")))
-                .andExpect(jsonPath("$.leadId", is("lead_a")))
-                .andExpect(jsonPath("$.message", is("This is a manual sales escalation message")))
-                .andExpect(jsonPath("$.status", is("SENT")));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.conversationId", is(convId)))
+                .andExpect(jsonPath("$.text", is("Hello Alice! This is manual sales escalation.")))
+                .andExpect(jsonPath("$.senderType", is("HUMAN_REPRESENTATIVE")));
 
-        // Verify a conversation was updated or created
-        mockMvc.perform(get("/api/inbox/chats"))
+        // Verify conversation history messages
+        mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].telegramAccountId", is("acc_1")))
-                .andExpect(jsonPath("$[0].leadId", is("lead_a")))
-                .andExpect(jsonPath("$[0].lastMessage", is("This is a manual sales escalation message")));
+                .andExpect(jsonPath("$[0].text", is("Hello Alice! This is manual sales escalation.")));
     }
 
     @Test
     public void testSendManualMessage_WithInvalidArguments_ReturnsBadRequest() throws Exception {
-        ManualMessageRequestDto invalidRequest = new ManualMessageRequestDto("", "lead_a", "Hello");
+        SendMessageRequestDto invalidRequest = new SendMessageRequestDto("");
 
-        mockMvc.perform(post("/api/inbox/send")
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode", is("INVALID_ARGUMENT")))
-                .andExpect(jsonPath("$.errorMessage", is("telegramAccountId is required")));
+                .andExpect(jsonPath("$.errorCode", is("INVALID_ARGUMENT")));
     }
 }

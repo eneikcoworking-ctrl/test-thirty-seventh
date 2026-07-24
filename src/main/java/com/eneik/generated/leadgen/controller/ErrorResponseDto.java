@@ -1,18 +1,27 @@
 package com.eneik.generated.leadgen.controller;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 public class ErrorResponseDto {
     private String errorCode;
-    private String errorMessage;
+    private String message;
     private OffsetDateTime timestamp;
+    private List<String> details;
 
     public ErrorResponseDto() {}
 
-    public ErrorResponseDto(String errorCode, String errorMessage, OffsetDateTime timestamp) {
+    public ErrorResponseDto(String errorCode, String message, OffsetDateTime timestamp) {
         this.errorCode = errorCode;
-        this.errorMessage = errorMessage;
+        this.message = message;
         this.timestamp = timestamp;
+    }
+
+    public ErrorResponseDto(String errorCode, String message, OffsetDateTime timestamp, List<String> details) {
+        this.errorCode = errorCode;
+        this.message = message;
+        this.timestamp = timestamp;
+        this.details = details;
     }
 
     public String getErrorCode() {
@@ -23,12 +32,12 @@ public class ErrorResponseDto {
         this.errorCode = errorCode;
     }
 
-    public String getErrorMessage() {
-        return errorMessage;
+    public String getMessage() {
+        return message;
     }
 
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public OffsetDateTime getTimestamp() {
@@ -37,5 +46,13 @@ public class ErrorResponseDto {
 
     public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public List<String> getDetails() {
+        return details;
+    }
+
+    public void setDetails(List<String> details) {
+        this.details = details;
     }
 }

@@ -3,46 +3,52 @@ package com.eneik.generated.leadgen.controller;
 import java.time.OffsetDateTime;
 
 public class ConversationDto {
-    private Long id;
-    private String telegramAccountId;
-    private String leadId;
+    private String id;
+    private Long telegramChatId;
+    private String leadName;
     private String leadUsername;
-    private String lastMessage;
-    private OffsetDateTime lastMessageTimestamp;
+    private String leadPhone;
+    private String status;
+    private String assignedAgentId;
+    private OffsetDateTime lastMessageAt;
+    private OffsetDateTime createdAt;
 
     public ConversationDto() {}
 
-    public ConversationDto(Long id, String telegramAccountId, String leadId, String leadUsername, String lastMessage, OffsetDateTime lastMessageTimestamp) {
+    public ConversationDto(String id, Long telegramChatId, String leadName, String leadUsername, String leadPhone, String status, String assignedAgentId, OffsetDateTime lastMessageAt, OffsetDateTime createdAt) {
         this.id = id;
-        this.telegramAccountId = telegramAccountId;
-        this.leadId = leadId;
+        this.telegramChatId = telegramChatId;
+        this.leadName = leadName;
         this.leadUsername = leadUsername;
-        this.lastMessage = lastMessage;
-        this.lastMessageTimestamp = lastMessageTimestamp;
+        this.leadPhone = leadPhone;
+        this.status = status;
+        this.assignedAgentId = assignedAgentId;
+        this.lastMessageAt = lastMessageAt;
+        this.createdAt = createdAt;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public String getTelegramAccountId() {
-        return telegramAccountId;
+    public Long getTelegramChatId() {
+        return telegramChatId;
     }
 
-    public void setTelegramAccountId(String telegramAccountId) {
-        this.telegramAccountId = telegramAccountId;
+    public void setTelegramChatId(Long telegramChatId) {
+        this.telegramChatId = telegramChatId;
     }
 
-    public String getLeadId() {
-        return leadId;
+    public String getLeadName() {
+        return leadName;
     }
 
-    public void setLeadId(String leadId) {
-        this.leadId = leadId;
+    public void setLeadName(String leadName) {
+        this.leadName = leadName;
     }
 
     public String getLeadUsername() {
@@ -53,19 +59,43 @@ public class ConversationDto {
         this.leadUsername = leadUsername;
     }
 
-    public String getLastMessage() {
-        return lastMessage;
+    public String getLeadPhone() {
+        return leadPhone;
     }
 
-    public void setLastMessage(String lastMessage) {
-        this.lastMessage = lastMessage;
+    public void setLeadPhone(String leadPhone) {
+        this.leadPhone = leadPhone;
     }
 
-    public OffsetDateTime getLastMessageTimestamp() {
-        return lastMessageTimestamp;
+    public String getStatus() {
+        return status;
     }
 
-    public void setLastMessageTimestamp(OffsetDateTime lastMessageTimestamp) {
-        this.lastMessageTimestamp = lastMessageTimestamp;
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getAssignedAgentId() {
+        return assignedAgentId;
+    }
+
+    public void setAssignedAgentId(String assignedAgentId) {
+        this.assignedAgentId = assignedAgentId;
+    }
+
+    public OffsetDateTime getLastMessageAt() {
+        return lastMessageAt;
+    }
+
+    public void setLastMessageAt(OffsetDateTime lastMessageAt) {
+        this.lastMessageAt = lastMessageAt;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

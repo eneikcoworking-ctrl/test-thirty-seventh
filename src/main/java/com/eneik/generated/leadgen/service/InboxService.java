@@ -1,76 +1,87 @@
 package com.eneik.generated.leadgen.service;
 
 import com.eneik.generated.leadgen.model.Conversation;
-import com.eneik.generated.leadgen.model.Message;
+import com.eneik.generated.leadgen.model.ConversationMessage;
+import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
-import com.eneik.generated.leadgen.repository.MessageRepository;
-import com.eneik.generated.leadgen.repository.TelegramAccountRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class InboxService {
 
     private final ConversationRepository conversationRepository;
-    private final MessageRepository messageRepository;
-    private final TelegramAccountRepository telegramAccountRepository;
+    private final ConversationMessageRepository conversationMessageRepository;
     private final TelegramBridgeService telegramBridgeService;
 
     public InboxService(ConversationRepository conversationRepository,
-                        MessageRepository messageRepository,
-                        TelegramAccountRepository telegramAccountRepository,
+                        ConversationMessageRepository conversationMessageRepository,
                         TelegramBridgeService telegramBridgeService) {
         this.conversationRepository = conversationRepository;
-        this.messageRepository = messageRepository;
-        this.telegramAccountRepository = telegramAccountRepository;
+        this.conversationMessageRepository = conversationMessageRepository;
         this.telegramBridgeService = telegramBridgeService;
     }
 
-    /**
-     * Retrieves all active/historical conversations/chats from all accounts.
-     */
     @Transactional(readOnly = true)
-    public List<Conversation> getAllConversations() {
-        return conversationRepository.findAll();
+    public Page<Conversation> getConversations(String status, String assignedAgentId, int page, int limit) {
+        Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
+
+        boolean hasStatus = (status != null && !status.trim().isEmpty() && !status.equalsIgnoreCase("ALL"));
+        boolean hasAgent = (assignedAgentId != null && !assignedAgentId.trim().isEmpty());
+
+        if (hasStatus && hasAgent) {
+            return conversationRepository.findByStatusAndAssignedAgentId(status.toUpperCase(), assignedAgentId, pageable);
+        } else if (hasStatus) {
+            return conversationRepository.findByStatus(status.toUpperCase(), pageable);
+        } else if (hasAgent) {
+            return conversationRepository.findByAssignedAgentId(assignedAgentId, pageable);
+        } else {
+            return conversationRepository.findAll(pageable);
+        }
     }
 
-    /**
-     * Dispatches a manual message via the Telegram layer, updating history and conversations.
-     */
+    @Transactional(readOnly = true)
+    public List<ConversationMessage> getMessages(String conversationId, int limit, String beforeMessageId) {
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "sentAt"));
+        if (beforeMessageId != null && !beforeMessageId.trim().isEmpty()) {
+            return conversationMessageRepository.findByConversationIdAndIdLessThan(conversationId, beforeMessageId, pageable);
+        } else {
+            return conversationMessageRepository.findByConversationId(conversationId, pageable);
+        }
+    }
+
     @Transactional
-    public Message dispatchManualMessage(String telegramAccountId, String leadId, String content) {
-        // 1. Dispatch message via the TDLib/Telegram layer simulated bridge
-        String tgMessageId = telegramBridgeService.dispatchMessage(telegramAccountId, leadId, content);
+    public ConversationMessage sendManualMessage(String conversationId, String text) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
+
+        // 1. Dispatch manual outreach message via the Telegram bridge layer (simulated/actual JNI/JNA wrapper)
+        telegramBridgeService.dispatchMessage(conversation.getTelegramChatId(), text);
 
         OffsetDateTime now = OffsetDateTime.now();
 
-        // 2. Persist message in the relational database history
-        Message message = new Message();
-        message.setTelegramAccountId(telegramAccountId);
-        message.setLeadId(leadId);
-        message.setContent(content);
-        message.setDirection("OUTBOUND");
-        message.setStatus("SENT");
-        message.setTimestamp(now);
-        Message savedMessage = messageRepository.save(message);
+        // 2. Persist the OUTBOUND message in the conversation message history
+        ConversationMessage message = new ConversationMessage();
+        message.setId(UUID.randomUUID().toString());
+        message.setConversationId(conversationId);
+        message.setText(text);
+        message.setSenderType("HUMAN_REPRESENTATIVE");
+        message.setSentAt(now);
+        message.setSenderName("Human Agent");
+        ConversationMessage savedMessage = conversationMessageRepository.save(message);
 
-        // 3. Update or create the Conversation to track the latest turn
-        Conversation conversation = conversationRepository
-                .findByTelegramAccountIdAndLeadId(telegramAccountId, leadId)
-                .orElseGet(() -> {
-                    Conversation newConv = new Conversation();
-                    newConv.setTelegramAccountId(telegramAccountId);
-                    newConv.setLeadId(leadId);
-                    // Generate a placeholder username or rely on existing lead entity if needed
-                    newConv.setLeadUsername("lead_" + leadId);
-                    return newConv;
-                });
-
-        conversation.setLastMessage(content);
-        conversation.setLastMessageTimestamp(now);
+        // 3. Update the conversation state (mark as ESCALATED/ACTIVE, update last turn timestamp)
+        // Manual message automatically marks active/handled status
+        conversation.setStatus("ACTIVE");
+        conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
 
         return savedMessage;

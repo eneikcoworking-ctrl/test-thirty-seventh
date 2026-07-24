@@ -12,15 +12,10 @@ public class TelegramBridgeService {
     private static final Logger log = LoggerFactory.getLogger(TelegramBridgeService.class);
 
     /**
-     * Simulates dispatching a message via the Telegram API / TDLib / GramJS bridge.
-     * In a production setting, this interfaces with actual TDLib JNI/JNA bindings.
+     * Emulates message dispatch via the Telegram core layer (JNI/JNA bindings to TDLib).
      */
-    public String dispatchMessage(String telegramAccountId, String leadId, String messageText) {
-        log.info("Dispatching message via Telegram layer: Account={}, Lead={}, Message='{}'",
-                telegramAccountId, leadId, messageText);
-
-        // Emulate random behavioral delay or typing signal check if needed (as per Module 1 anti-fraud)
-        // Returns a unique message ID representing the dispatched telegram message
+    public String dispatchMessage(Long telegramChatId, String text) {
+        log.info("Dispatching message to Telegram Chat ID: {} - text: '{}'", telegramChatId, text);
         return "tg_msg_" + UUID.randomUUID().toString();
     }
 }

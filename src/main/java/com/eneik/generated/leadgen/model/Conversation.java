@@ -1,8 +1,6 @@
 package com.eneik.generated.leadgen.model;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
@@ -12,47 +10,53 @@ import java.time.OffsetDateTime;
 public class Conversation {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    private String telegramAccountId;
-    private String leadId;
+    private Long telegramChatId;
+    private String leadName;
     private String leadUsername;
-    private String lastMessage;
-    private OffsetDateTime lastMessageTimestamp;
+    private String leadPhone;
+    private String status; // ACTIVE, ESCALATED, RESOLVED, PAUSED
+    private String assignedAgentId;
+    private OffsetDateTime lastMessageAt;
+    private OffsetDateTime createdAt;
 
     public Conversation() {}
 
-    public Conversation(String telegramAccountId, String leadId, String leadUsername, String lastMessage, OffsetDateTime lastMessageTimestamp) {
-        this.telegramAccountId = telegramAccountId;
-        this.leadId = leadId;
+    public Conversation(String id, Long telegramChatId, String leadName, String leadUsername, String leadPhone, String status, String assignedAgentId, OffsetDateTime lastMessageAt, OffsetDateTime createdAt) {
+        this.id = id;
+        this.telegramChatId = telegramChatId;
+        this.leadName = leadName;
         this.leadUsername = leadUsername;
-        this.lastMessage = lastMessage;
-        this.lastMessageTimestamp = lastMessageTimestamp;
+        this.leadPhone = leadPhone;
+        this.status = status;
+        this.assignedAgentId = assignedAgentId;
+        this.lastMessageAt = lastMessageAt;
+        this.createdAt = createdAt;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public String getTelegramAccountId() {
-        return telegramAccountId;
+    public Long getTelegramChatId() {
+        return telegramChatId;
     }
 
-    public void setTelegramAccountId(String telegramAccountId) {
-        this.telegramAccountId = telegramAccountId;
+    public void setTelegramChatId(Long telegramChatId) {
+        this.telegramChatId = telegramChatId;
     }
 
-    public String getLeadId() {
-        return leadId;
+    public String getLeadName() {
+        return leadName;
     }
 
-    public void setLeadId(String leadId) {
-        this.leadId = leadId;
+    public void setLeadName(String leadName) {
+        this.leadName = leadName;
     }
 
     public String getLeadUsername() {
@@ -63,19 +67,43 @@ public class Conversation {
         this.leadUsername = leadUsername;
     }
 
-    public String getLastMessage() {
-        return lastMessage;
+    public String getLeadPhone() {
+        return leadPhone;
     }
 
-    public void setLastMessage(String lastMessage) {
-        this.lastMessage = lastMessage;
+    public void setLeadPhone(String leadPhone) {
+        this.leadPhone = leadPhone;
     }
 
-    public OffsetDateTime getLastMessageTimestamp() {
-        return lastMessageTimestamp;
+    public String getStatus() {
+        return status;
     }
 
-    public void setLastMessageTimestamp(OffsetDateTime lastMessageTimestamp) {
-        this.lastMessageTimestamp = lastMessageTimestamp;
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getAssignedAgentId() {
+        return assignedAgentId;
+    }
+
+    public void setAssignedAgentId(String assignedAgentId) {
+        this.assignedAgentId = assignedAgentId;
+    }
+
+    public OffsetDateTime getLastMessageAt() {
+        return lastMessageAt;
+    }
+
+    public void setLastMessageAt(OffsetDateTime lastMessageAt) {
+        this.lastMessageAt = lastMessageAt;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

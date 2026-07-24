@@ -1,6 +1,6 @@
-package com.eneik.generated.leadgen.repository;
+package com.eneik.generated.repository;
 
-import com.eneik.generated.leadgen.model.Message;
+import com.eneik.generated.model.Message;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
