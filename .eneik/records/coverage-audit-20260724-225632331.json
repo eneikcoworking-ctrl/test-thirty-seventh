@@ -1,0 +1,39 @@
+{
+  "gaps": [
+    {
+      "title": "Pre-authenticated Session File Upload in Svelte UI",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When onboarding a warmed-up Telegram account, I want to upload its pre-authenticated .session or tdata files in the control panel, so that I can immediately integrate existing worker accounts without requiring manual OTP confirmation.",
+      "acceptanceCriteria": "Given an administrator using the Onboarding panel, When they select 'Upload Session File' and submit a valid .session file along with proxy details, Then the Svelte UI must successfully send a multipart request to /api/accounts/onboard/session and display the registered account's active status.",
+      "reason": "literal brief requirement: FEAT-ACC-01 explicitly specifies the option of 'uploading pre-authenticated .session / tdata files' to add new accounts. While the backend has /api/accounts/onboard/session, the Svelte frontend only has forms and code for OTP verification."
+    },
+    {
+      "title": "Automated Background Warm-up Actions",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When accounts are assigned to a warm-up campaign, I want the system to automatically subscribe to channels, view messages, and toggle online status in the background, so that their trust scores are systematically improved to avoid Telegram's anti-fraud bans.",
+      "acceptanceCriteria": "Given a Telegram account with warm-up status 'IN_PROGRESS', When the background scheduler/job runs periodically, Then it must dispatch automation tasks (e.g. channel subscriptions, post reading, maintaining online presence) to build the account trust score.",
+      "reason": "literal brief requirement: FEAT-BAN-01 explicitly asks for 'Automated background actions (subscribing to channels, reading posts, maintaining \"online\" presence status) to build account trust scores.' The current codebase only provides simple database state changes in WarmUpService.java with no actual automation background engine or tasks implemented."
+    },
+    {
+      "title": "Inbound Message Intent & Keyword Stop-Triggers",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When an inbound message is received from a lead during an AI conversation, I want the system to check for stop keywords/intents or a turn count limit, so that the AI stops replying and alerts human operators for active intervention.",
+      "acceptanceCriteria": "Given a conversation with status 'ACTIVE', When a lead sends a message containing a safety trigger keyword (e.g., 'stop', 'unsubscribe', 'human') or the back-and-forth reaches 5 AI turns, Then the conversation status must automatically change to 'ESCALATED' / 'Awaiting Human Intervention' and automated AI generation must be halted.",
+      "reason": "literal brief requirement: FEAT-AI-04 and FEAT-AI-05 require detecting intent flags, keywords, or reaching a maximum dialogue turns limit (e.g. 5 AI turns), pausing AI generation automatically, and marking the status as 'Awaiting Human Intervention'. In the actual code, InboxService.receiveLeadMessage automatically responds with an AI message whenever the status is ACTIVE, with no scanning for keywords, intents, or turn limits."
+    },
+    {
+      "title": "Typing... Status Signal Human Behavior Emulation",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When dispatching an automated outreach message, I want the platform to broadcast a 'typing...' status prior to sending, so that the message pattern emulates human behavior and avoids Telegram anti-fraud triggers.",
+      "acceptanceCriteria": "Given a campaign outreach message to be sent via a Telegram account, When the dispatch operation begins, Then the system must send a 'typing' chat status signal to the recipient prior to dispatching the message, separated by a randomized delay.",
+      "reason": "literal brief requirement: FEAT-ACC-04 explicitly mandates 'sending \"typing...\" chat status signals prior to dispatching messages' as part of human behavior emulation. The dispatching code in CampaignDispatchService.java immediately sends the text via TelegramBridgeService without invoking or emulating typing signals."
+    },
+    {
+      "title": "Database Schema & Auth Concept (User Model and Admin Dashboard Auth)",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When accessing the SaaS-style admin control panel, I want to authenticate with secure credentials and restrict API access, so that unauthorized users cannot manipulate sensitive Telegram accounts, proxy configurations, or lead data.",
+      "acceptanceCriteria": "Given an unauthorized user trying to view the dashboard or call REST endpoints, When they navigate to the URL or invoke an API, Then the system must redirect them to a login page and block API requests until they successfully authenticate as an admin panel user.",
+      "reason": "domain-standard expectation: A SaaS-style admin dashboard handling sensitive operational resources (like pre-authenticated Telegram session files and private proxies) implicitly requires user authentication and access controls, and the brief's database schema diagram also includes 'Users (Admin Panel Users)' which is entirely absent from the codebase."
+    }
+  ]
+}
