@@ -1,0 +1,100 @@
+{
+  "epics": [
+    {
+      "existingEpicId": null,
+      "title": "Database Migration Versioning and Reversibility Compliance",
+      "jtbd": "When managing the platform infrastructure, I want to ensure database changes are strictly versioned and reversible, so that I can maintain system integrity without downtime during failed deployments.",
+      "kanoClass": "Must-Be",
+      "cynefinDomain": "clear",
+      "sixSigmaMetric": "Reduce the number of irreversible schema changes in the PRs from 2 to 0.",
+      "tocConstraintRef": "Database deployment pipeline constraints.",
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Rename Flyway migration files in PRs #66 and #67 to use sequential numbering (e.g., V14, V15).",
+        "R2: Add corresponding down-migration ('U' prefix) scripts for the migrations in PRs #66 and #67."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Fix Flyway migration versioning and add down-scripts for PRs 66 and 67",
+          "roleTag": "BARCAN-TAG-08",
+          "jtbd": "When implementing schema corrections for this epic, I want to rename the migrations and add their U-scripts, so that maintaining system integrity without downtime during failed deployments is achieved.",
+          "acceptanceCriteria": "Given timestamp-based Flyway migrations in PRs 66 and 67, When the database builds, Then they must be renamed to sequential V-versions.\nGiven a V-prefix migration, When it exists, Then a matching U-prefix down-script must be present to revert it.\nGiven the down-scripts, When executed, Then they must fully revert the changes made by their V-script counterparts.",
+          "leanValue": "essential",
+          "cynefinDomain": "clear",
+          "tocConstraintRef": "Flyway naming convention bottleneck.",
+          "sixSigmaMetric": "Reduce migration naming violations from 2 to 0.",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1",
+            "R2"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": null,
+      "title": "Task Plan Quality and Test Falsifiability Constraints",
+      "jtbd": "When managing the project backlog, I want to enforce delta-based quality metrics and multi-scenario test criteria in task plans, so that system improvements are statistically verifiable and fully falsifiable.",
+      "kanoClass": "Must-Be",
+      "cynefinDomain": "clear",
+      "sixSigmaMetric": "Reduce the count of non-compliant validation properties in PR 69 from 2 to 0.",
+      "tocConstraintRef": "Task plan validation constraint.",
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Update sixSigmaMetric values in the PR #69 task plan to use a measurable baseline-to-target delta.",
+        "R2: Expand the acceptanceCriteria in the PR #69 task slices to include at least 1 positive, 2 negative, and 1 edge case scenarios."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Correct task plan metrics and acceptance criteria in PR 69",
+          "roleTag": "BARCAN-TAG-09",
+          "jtbd": "When implementing task plan corrections for this epic, I want to rewrite metrics as deltas and add diverse test scenarios, so that ensuring system improvements are statistically verifiable and fully falsifiable is achieved.",
+          "acceptanceCriteria": "Given a task plan JSON, When specifying sixSigmaMetric, Then it must formulate the goal as a measurable delta rather than an absolute target.\nGiven task slices in the plan, When writing acceptanceCriteria, Then they must contain at least 4 distinct Given/When/Then scenarios.\nGiven the 4 scenarios, When reviewed, Then they must include at least 1 positive, 2 negative, and 1 edge case.",
+          "leanValue": "essential",
+          "cynefinDomain": "clear",
+          "tocConstraintRef": "PR review acceptance block.",
+          "sixSigmaMetric": "Reduce missing test scenarios in PR 69 from 3 to 0.",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1",
+            "R2"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "f976137f-eb40-471c-873b-cf38c4b9e437",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Modify the rate limiter in PR #67 to trigger dynamic failover to the next available account upon reaching the daily limit.",
+        "R2: Prevent the rate limiter from throwing an IllegalStateException or halting dispatches when an account's limit is reached."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement dynamic failover in campaign rate limiter",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing the rate limiter fix for this epic, I want to replace the exception with an account failover mechanism, so that dispatching personalized messages at scale continuously is achieved.",
+          "acceptanceCriteria": "Given an account reaches its daily dispatch limit, When the rate limiter intercepts the next request, Then it must automatically switch to the next available account.\nGiven the limit is reached, When there are no other available accounts, Then the dispatch process should pause gracefully without throwing an exception.\nGiven a failover is required, When the account switch occurs, Then the transition must be logged correctly.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Dispatch throughput constraint.",
+          "sixSigmaMetric": "Reduce the percentage of aborted campaigns due to rate limit exceptions from 100% to 0%.",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1",
+            "R2"
+          ]
+        }
+      ]
+    }
+  ]
+}
