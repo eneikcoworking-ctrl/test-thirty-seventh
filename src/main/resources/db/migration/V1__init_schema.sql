@@ -1,3 +1,8 @@
+-- Down migration / rollback script:
+-- ALTER TABLE tg_accounts DROP CONSTRAINT IF EXISTS fk_proxy;
+-- DROP TABLE IF EXISTS tg_accounts;
+-- DROP TABLE IF EXISTS proxies;
+
 CREATE TABLE proxies (
     id BIGSERIAL PRIMARY KEY,
     ip_address VARCHAR(255) NOT NULL,

@@ -1,3 +1,7 @@
+-- Down migration / rollback script:
+-- DROP TABLE IF EXISTS warm_up_cycles;
+-- DROP TABLE IF EXISTS accounts;
+
 -- V4__warm_up_schema.sql
 -- Description: Table schemas for tracking account, age, warm-up state, and warm-up cycles.
 -- JTBD: When implementing schema for this epic, I want to track account age and warm-up state, so that I can maximize account lifespan and trust scores.
@@ -20,7 +24,3 @@ CREATE TABLE warm_up_cycles (
     target_score_increase DOUBLE PRECISION NOT NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
-
--- Down migration (documented rollback):
--- DROP TABLE warm_up_cycles;
--- DROP TABLE accounts;

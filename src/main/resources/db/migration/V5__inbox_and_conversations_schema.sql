@@ -1,3 +1,7 @@
+-- Down migration / rollback script:
+-- DROP TABLE IF EXISTS conversation_messages;
+-- DROP TABLE IF EXISTS conversations;
+
 CREATE TABLE conversations (
     id VARCHAR(36) PRIMARY KEY,
     telegram_chat_id BIGINT NOT NULL,
