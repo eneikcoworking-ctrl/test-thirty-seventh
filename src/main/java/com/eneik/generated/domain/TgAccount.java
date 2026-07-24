@@ -30,14 +30,14 @@ public class TgAccount {
     @JoinColumn(name = "proxy_id")
     private Proxy proxy;
 
-    @Column(name = "campaign_id")
+    @Column(name = "campaign_id", length = 36)
     private String campaignId;
 
-    @Column(name = "daily_dispatch_count", nullable = false)
-    private int dailyDispatchCount = 0;
-
     @Column(name = "daily_dispatch_limit", nullable = false)
-    private int dailyDispatchLimit = 50;
+    private Integer dailyDispatchLimit = 50;
+
+    @Column(name = "daily_dispatch_count", nullable = false)
+    private Integer dailyDispatchCount = 0;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -47,15 +47,6 @@ public class TgAccount {
 
     // Getters and Setters
     public Long getId() { return id; }
-
-    public String getCampaignId() { return campaignId; }
-    public void setCampaignId(String campaignId) { this.campaignId = campaignId; }
-
-    public int getDailyDispatchCount() { return dailyDispatchCount; }
-    public void setDailyDispatchCount(int dailyDispatchCount) { this.dailyDispatchCount = dailyDispatchCount; }
-
-    public int getDailyDispatchLimit() { return dailyDispatchLimit; }
-    public void setDailyDispatchLimit(int dailyDispatchLimit) { this.dailyDispatchLimit = dailyDispatchLimit; }
     public void setId(Long id) { this.id = id; }
 
     public String getPhoneNumber() { return phoneNumber; }
@@ -75,4 +66,13 @@ public class TgAccount {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getCampaignId() { return campaignId; }
+    public void setCampaignId(String campaignId) { this.campaignId = campaignId; }
+
+    public Integer getDailyDispatchLimit() { return dailyDispatchLimit; }
+    public void setDailyDispatchLimit(Integer dailyDispatchLimit) { this.dailyDispatchLimit = dailyDispatchLimit; }
+
+    public Integer getDailyDispatchCount() { return dailyDispatchCount; }
+    public void setDailyDispatchCount(Integer dailyDispatchCount) { this.dailyDispatchCount = dailyDispatchCount; }
 }
