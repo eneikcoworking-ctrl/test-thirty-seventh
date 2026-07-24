@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -130,5 +131,87 @@ public class InboxControllerTest {
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode", is("INVALID_ARGUMENT")));
+    }
+
+    @Test
+    public void testManualMessageTransitionsDialogToPaused() throws Exception {
+        // Given an AI-active conversation
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                55555L,
+                "Bob Green",
+                "bob_g",
+                "+555555555",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        // When a manual message is sent
+        SendMessageRequestDto request = new SendMessageRequestDto("Manual Rep message");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", convId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // Then the conversation status updates to PAUSED
+        Conversation updatedConv = conversationRepository.findById(convId).orElseThrow();
+        assertEquals("PAUSED", updatedConv.getStatus());
+    }
+
+    @Test
+    public void testPausedDialogueIgnoresLeadReplyWhileActiveDialogueAutoReplies() throws Exception {
+        // --- Scenario A: ACTIVE dialogue automatically triggers AI response ---
+        String activeConvId = UUID.randomUUID().toString();
+        Conversation activeConv = new Conversation(
+                activeConvId,
+                66666L,
+                "Active Lead",
+                "active_l",
+                "+666666666",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(activeConv);
+
+        // Send a lead message to the active dialogue
+        SendMessageRequestDto leadRequest = new SendMessageRequestDto("Hello Bot");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/lead-messages", activeConvId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(leadRequest)))
+                .andExpect(status().isCreated());
+
+        // Verify there are exactly 2 messages in the active dialogue (the lead message + the simulated AI response)
+        assertEquals(2, conversationMessageRepository.findByConversationId(activeConvId, null).size());
+
+
+        // --- Scenario B: PAUSED dialogue ignores the lead reply ---
+        String pausedConvId = UUID.randomUUID().toString();
+        Conversation pausedConv = new Conversation(
+                pausedConvId,
+                77777L,
+                "Paused Lead",
+                "paused_l",
+                "+777777777",
+                "PAUSED",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(pausedConv);
+
+        // Send a lead message to the paused dialogue
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/lead-messages", pausedConvId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(leadRequest)))
+                .andExpect(status().isCreated());
+
+        // Verify there is exactly 1 message in the paused dialogue (only the lead message; no AI response)
+        assertEquals(1, conversationMessageRepository.findByConversationId(pausedConvId, null).size());
     }
 }

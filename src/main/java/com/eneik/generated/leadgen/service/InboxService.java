@@ -80,10 +80,50 @@ public class InboxService {
 
         // 3. Update the conversation state (mark as ESCALATED/ACTIVE, update last turn timestamp)
         // Manual message automatically marks active/handled status
-        conversation.setStatus("ACTIVE");
+        // Given an AI-active conversation, When a manual message is sent, Then the status updates to paused.
+        conversation.setStatus("PAUSED");
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
 
         return savedMessage;
+    }
+
+    /**
+     * Receives a lead message. If the conversation status is ACTIVE (AI is active),
+     * an automated AI response is triggered. If the conversation status is PAUSED,
+     * the lead reply is saved but the AI ignores it (no automated AI response is added).
+     */
+    @Transactional
+    public ConversationMessage receiveLeadMessage(String conversationId, String text) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        ConversationMessage leadMessage = new ConversationMessage();
+        leadMessage.setId(UUID.randomUUID().toString());
+        leadMessage.setConversationId(conversationId);
+        leadMessage.setText(text);
+        leadMessage.setSenderType("LEAD");
+        leadMessage.setSentAt(now);
+        leadMessage.setSenderName(conversation.getLeadName());
+        ConversationMessage savedLeadMessage = conversationMessageRepository.save(leadMessage);
+
+        // Given a paused dialogue, When a lead replies, Then the AI ignores the reply.
+        if ("ACTIVE".equalsIgnoreCase(conversation.getStatus())) {
+            ConversationMessage aiMessage = new ConversationMessage();
+            aiMessage.setId(UUID.randomUUID().toString());
+            aiMessage.setConversationId(conversationId);
+            aiMessage.setText("AI Automated Response to: " + text);
+            aiMessage.setSenderType("AI_AGENT");
+            aiMessage.setSentAt(now.plusSeconds(1));
+            aiMessage.setSenderName("AI Bot");
+            conversationMessageRepository.save(aiMessage);
+        }
+
+        conversation.setLastMessageAt(now);
+        conversationRepository.save(conversation);
+
+        return savedLeadMessage;
     }
 }
