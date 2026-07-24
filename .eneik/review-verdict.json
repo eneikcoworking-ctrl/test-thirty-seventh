@@ -2,42 +2,10 @@
   "verdicts": [
     {
       "sourceIndex": 0,
-      "verdict": "approve",
-      "criticalReason": "",
+      "verdict": "block",
+      "criticalReason": "The PR commits multiple internal orchestrator bookkeeping files under the `.eneik/` directory (such as `.eneik/records/...` and `.eneik/review-verdict.json`), which is a direct violation of the PR Boundaries and causes automatic rejection. Additionally, the PR introduces database migration V3, new Java model classes, JPA repositories, and backend tests which are entirely out of scope for the BARCAN-TAG-11 role.",
       "concerns": [
-        "In InboxService, when a Conversation is created, a placeholder lead username 'lead_' + leadId is used. It would be safer to check the Lead table/repository first to retrieve the actual username if available."
-      ]
-    },
-    {
-      "sourceIndex": 1,
-      "verdict": "approve",
-      "criticalReason": "",
-      "concerns": [
-        "No higher-level service is implemented to coordinate the data layer (the work is limited to TgAccountRepository/ProxyRepository and a database migration). While correct for the Data role, future work will need to integrate these models into services/controllers."
-      ]
-    },
-    {
-      "sourceIndex": 2,
-      "verdict": "approve",
-      "criticalReason": "",
-      "concerns": [
-        "LeadImportService uses a basic custom CSV split logic (line.split(',', -1)). This does not support complex CSVs containing escaped commas inside quotes and could cause runtime issues with more complicated metadata payloads."
-      ]
-    },
-    {
-      "sourceIndex": 3,
-      "verdict": "approve",
-      "criticalReason": "",
-      "concerns": [
-        "Statuses such as warm-up status and cycle status are stored as raw Strings instead of Enums, reducing type-safety and potentially leading to typos in status checks in future modules."
-      ]
-    },
-    {
-      "sourceIndex": 4,
-      "verdict": "approve",
-      "criticalReason": "",
-      "concerns": [
-        "The validation script design/validate_openapi.py is a great addition, but it runs as a standalone Python script. Integrating this contract validation into the standard Maven build lifecycle or a CI workflow would prevent regression more effectively."
+        "The simulated file upload process in `+page.svelte` uses a simple mock interval that only appends randomly-generated accounts in memory and does not integrate with any real backend API endpoint."
       ]
     }
   ]
