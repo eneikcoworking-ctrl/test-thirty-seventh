@@ -1,7 +1,3 @@
 # Eneik orchestrator internal record files - never part of product code
 .eneik/
-node_modules/
 target/
-data/
-*.log
-*.diff
