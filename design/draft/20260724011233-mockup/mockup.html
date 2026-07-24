@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Campaign Manager - New Campaign</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e0e3e5",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#dae2fd",
+                        "on-primary-fixed-variant": "#0038b6",
+                        "surface-dim": "#d8dadc",
+                        "on-surface": "#191c1e",
+                        "tertiary-fixed-dim": "#b7c8e1",
+                        "primary-container": "#0052ff",
+                        "on-tertiary-container": "#d6e6ff",
+                        "inverse-surface": "#2d3133",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "error-container": "#ffdad6",
+                        "on-primary-container": "#dfe3ff",
+                        "tertiary-fixed": "#d3e4fe",
+                        "outline": "#737688",
+                        "surface-bright": "#f7f9fb",
+                        "on-secondary-fixed": "#131b2e",
+                        "primary-fixed": "#dde1ff",
+                        "tertiary": "#3f4f65",
+                        "outline-variant": "#c3c5d9",
+                        "on-tertiary-fixed": "#0b1c30",
+                        "on-secondary-fixed-variant": "#3f465c",
+                        "on-tertiary-fixed-variant": "#38485d",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#b7c4ff",
+                        "surface-container": "#eceef0",
+                        "surface": "#f7f9fb",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary": "#565e74",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-primary-fixed": "#001452",
+                        "primary": "#003ec7",
+                        "on-error": "#ffffff",
+                        "background": "#f7f9fb",
+                        "primary-fixed-dim": "#b7c4ff",
+                        "on-background": "#191c1e",
+                        "error": "#ba1a1a",
+                        "on-surface-variant": "#434656",
+                        "surface-tint": "#004ced",
+                        "secondary-container": "#dae2fd",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#57677e",
+                        "on-secondary-container": "#5c647a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "unit": "4px",
+                        "2xl": "48px",
+                        "lg": "24px",
+                        "gutter": "24px",
+                        "margin-mobile": "16px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "container-max": "1440px",
+                        "xl": "32px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom transitions for the wizard */
+        .wizard-step { display: none; }
+        .wizard-step.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .bento-card {
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+            background-color: white;
+            transition: all 0.2s ease;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface z-40 border-b border-outline-variant shadow-sm flex items-center justify-between px-md h-16">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined cursor-pointer text-on-surface-variant p-2 hover:bg-surface-container-high rounded-full transition-colors">menu</span>
+<h1 class="font-display-lg text-display-lg text-primary">Campaign Manager</h1>
+</div>
+<div class="flex items-center gap-md">
+<div class="hidden md:flex gap-md px-lg">
+<span class="font-label-md text-label-md text-primary font-bold cursor-pointer">Dashboard</span>
+<span class="font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded transition-colors cursor-pointer">Campaigns</span>
+<span class="font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high px-2 py-1 rounded transition-colors cursor-pointer">Templates</span>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant cursor-pointer active:opacity-80">
+<img class="w-full h-full object-cover" data-alt="A professional close-up headshot of a campaign manager in a bright, modern corporate office environment. The person is wearing minimalist business casual attire, with a soft daylight glow coming from a large window. The background features blurred architectural elements of a clean white and slate blue tech office, conveying authority and focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHCo6laHQoGidkE5sBIWKQEMLIjzliKQZIPIvt73yAyoNYQ_bPcryeRRoIEEIV9Z8IVt0_79n4L-A3pDC_uv2zIb3GH9VjSzs7xJX9gtMxGe35Tc40ebYjUhOwo-9TTyZLA1f0IY61cfBNxo8bVmuz7L6vFJPKw2kjJgva_dIQmNi2g4I-oopIGLF66XeyYFJSLVasOCMade15q5iIpstlBNah49DxrBODWuevYy6v31RLb1FYfkGi8ahL9t5eUbA80CFadyftwjo"/>
+</div>
+</div>
+</header>
+<div class="flex flex-col md:flex-row min-h-[calc(100vh-64px)]">
+<!-- NavigationDrawer (Sidebar Desktop) -->
+<aside class="hidden md:flex flex-col w-[280px] h-full fixed left-0 top-16 bg-surface-container-lowest border-r border-outline-variant py-lg z-30">
+<div class="px-md mb-lg">
+<div class="flex items-center gap-md p-md bg-surface-container-low rounded-xl mb-xl">
+<div class="w-10 h-10 bg-primary-fixed flex items-center justify-center rounded-lg text-primary">
+<span class="material-symbols-outlined">campaign</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold text-on-surface">Campaign Lead</p>
+<p class="text-xs text-on-surface-variant">Enterprise Tier</p>
+</div>
+</div>
+</div>
+<nav class="flex flex-col gap-unit">
+<a class="bg-secondary-fixed text-on-secondary-fixed rounded-full mx-2 px-md py-3 flex items-center gap-md transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-variant rounded-full mx-2 px-md py-3 flex items-center gap-md transition-all" href="#">
+<span class="material-symbols-outlined">campaign</span>
+<span class="font-label-md text-label-md">Campaigns</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-variant rounded-full mx-2 px-md py-3 flex items-center gap-md transition-all" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-md text-label-md">Templates</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-variant rounded-full mx-2 px-md py-3 flex items-center gap-md transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Analytics</span>
+</a>
+</nav>
+<div class="mt-auto px-md pt-lg border-t border-outline-variant mx-2">
+<p class="text-[10px] text-outline uppercase tracking-widest font-bold">Version</p>
+<p class="text-xs text-on-surface-variant">v2.4.0</p>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-[280px] p-md md:p-xl max-w-container-max mx-auto w-full mb-20 md:mb-0">
+<div class="mb-xl">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-sm">New Campaign</h2>
+<p class="text-on-surface-variant font-body-md">Create and configure your next high-impact marketing initiative.</p>
+</div>
+<!-- Wizard Container -->
+<div class="bento-card rounded-xl p-md md:p-lg">
+<!-- Progress Stepper -->
+<div class="flex items-center justify-center mb-xl">
+<div class="flex items-center w-full max-w-md relative">
+<!-- Connector Line -->
+<div class="absolute top-1/2 left-0 w-full h-[2px] bg-outline-variant -translate-y-1/2 z-0"></div>
+<div class="absolute top-1/2 left-0 w-0 h-[2px] bg-primary -translate-y-1/2 z-10 transition-all duration-500" id="progress-line"></div>
+<!-- Steps -->
+<div class="relative z-20 flex justify-between w-full">
+<div class="flex flex-col items-center gap-xs">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center transition-colors" id="step-1-circle">
+<span class="font-label-sm">1</span>
+</div>
+<span class="font-label-sm text-primary">Details</span>
+</div>
+<div class="flex flex-col items-center gap-xs">
+<div class="w-8 h-8 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors" id="step-2-circle">
+<span class="font-label-sm">2</span>
+</div>
+<span class="font-label-sm text-on-surface-variant">Content</span>
+</div>
+<div class="flex flex-col items-center gap-xs">
+<div class="w-8 h-8 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors" id="step-3-circle">
+<span class="font-label-sm">3</span>
+</div>
+<span class="font-label-sm text-on-surface-variant">Review</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 1 Content -->
+<div class="wizard-step active" id="wizard-step-1">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-xl">
+<div class="flex flex-col gap-lg">
+<h3 class="font-headline-md text-headline-md text-on-surface">Step 1: Campaign Details</h3>
+<div class="flex flex-col gap-sm">
+<label class="font-label-md text-on-surface-variant">Campaign Name</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-md focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-primary transition-all" placeholder="e.g. Q4 Global Brand Awareness" type="text"/>
+</div>
+<div class="flex flex-col gap-sm">
+<label class="font-label-md text-on-surface-variant">Primary Objective</label>
+<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-md focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-primary transition-all appearance-none">
+<option>Customer Retention</option>
+<option>New Lead Generation</option>
+<option>Brand Re-engagement</option>
+<option>Direct Sales</option>
+</select>
+</div>
+<div class="flex flex-col gap-sm">
+<label class="font-label-md text-on-surface-variant">Scheduling</label>
+<div class="grid grid-cols-2 gap-md">
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-md" type="date"/>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-md" type="time"/>
+</div>
+</div>
+</div>
+<div class="hidden md:block">
+<div class="w-full h-full rounded-xl overflow-hidden shadow-sm relative group">
+<img class="w-full h-full object-cover" data-alt="A clean, minimalist 3D rendering of a modern workspace with a digital interface floating in mid-air. The interface shows sophisticated campaign charts and data visualizations. The lighting is crisp and blue-toned, emphasizing corporate precision. Soft shadows and high-quality materials create a sense of professional luxury and dependable technology." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOnrNHIdT8BD1WFgYaA9KGQu6ks2144WeLPxPhE9xqhv0W5PpTaFzNvVed2uWfbQzALA4eSSnCmoeTz7qi6UTLDh611hKcuPmwM4OxBAbz6v_CkoIUopXcowVLFz_VVD31s-GQmpJR4sy_P28NDqhy_CAE5bVkth2d8g5RbQmXHVsXj-I_E7tTxzveMQBYXfjadfmabW6K_gWx2O2wo3LKUknVMQBX8MiQjyaTxp-O_0Lh51EvksCmwU31V-93H3bKt_IJXyujy_k"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 2 Content -->
+<div class="wizard-step" id="wizard-step-2">
+<div class="flex flex-col gap-lg">
+<div class="flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface">Step 2: Content Template</h3>
+<div class="flex gap-sm">
+<button class="px-md py-2 bg-surface-container-high rounded-full text-on-surface-variant text-label-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined align-middle mr-1">history</span> Recent
+                                </button>
+<button class="px-md py-2 bg-surface-container-high rounded-full text-on-surface-variant text-label-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined align-middle mr-1">save</span> Save Draft
+                                </button>
+</div>
+</div>
+<div class="bg-surface-container-low p-md rounded-xl border border-outline-variant">
+<div class="flex items-center gap-sm mb-md text-on-surface-variant">
+<span class="font-label-sm">Insert Variables:</span>
+<button class="px-3 py-1 bg-white border border-outline-variant rounded text-xs hover:border-primary hover:text-primary transition-all" onclick="insertVar('{{customer_name}}')">{{customer_name}}</button>
+<button class="px-3 py-1 bg-white border border-outline-variant rounded text-xs hover:border-primary hover:text-primary transition-all" onclick="insertVar('{{order_id}}')">{{order_id}}</button>
+<button class="px-3 py-1 bg-white border border-outline-variant rounded text-xs hover:border-primary hover:text-primary transition-all" onclick="insertVar('{{cta_link}}')">{{cta_link}}</button>
+</div>
+<textarea class="w-full bg-white border border-outline-variant rounded-lg p-md font-mono text-body-md focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-primary resize-none" id="message-editor" placeholder="Write your campaign message here..." rows="8"></textarea>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="border border-outline-variant rounded-xl p-md flex items-center gap-md">
+<span class="material-symbols-outlined text-primary">text_snippet</span>
+<div>
+<p class="font-label-md text-on-surface">A/B Testing</p>
+<p class="text-xs text-on-surface-variant">Compare content variations</p>
+</div>
+<div class="ml-auto">
+<input class="rounded text-primary focus:ring-primary" type="checkbox"/>
+</div>
+</div>
+<div class="border border-outline-variant rounded-xl p-md flex items-center gap-md">
+<span class="material-symbols-outlined text-primary">translate</span>
+<div>
+<p class="font-label-md text-on-surface">Localization</p>
+<p class="text-xs text-on-surface-variant">Translate for global markets</p>
+</div>
+<div class="ml-auto">
+<input class="rounded text-primary focus:ring-primary" type="checkbox"/>
+</div>
+</div>
+<div class="border border-outline-variant rounded-xl p-md flex items-center gap-md">
+<span class="material-symbols-outlined text-primary">image</span>
+<div>
+<p class="font-label-md text-on-surface">Dynamic Assets</p>
+<p class="text-xs text-on-surface-variant">Personalized visual content</p>
+</div>
+<div class="ml-auto">
+<input checked="" class="rounded text-primary focus:ring-primary" type="checkbox"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Navigation -->
+<div class="mt-xl pt-lg border-t border-outline-variant flex justify-between items-center">
+<button class="hidden px-xl py-md rounded-lg border border-outline-variant text-on-surface-variant font-label-md hover:bg-surface-container-high transition-all" id="btn-back">Back</button>
+<div class="flex-1"></div>
+<button class="px-xl py-md bg-primary text-on-primary rounded-lg font-label-md shadow-md active:scale-95 transition-all hover:bg-on-primary-fixed-variant" id="btn-next">Continue to Content</button>
+</div>
+</div>
+<!-- Supplemental Info (Asymmetric Bento) -->
+<div class="mt-xl grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<div class="lg:col-span-8 bento-card rounded-xl p-lg">
+<h4 class="font-headline-md text-headline-md mb-md">Campaign Health Prediction</h4>
+<div class="flex items-center gap-lg">
+<div class="w-24 h-24 rounded-full border-8 border-primary-container border-t-primary flex items-center justify-center">
+<span class="font-bold text-headline-md">84%</span>
+</div>
+<div class="flex-1">
+<p class="text-body-md text-on-surface-variant mb-sm">Based on your current settings, this campaign is likely to outperform previous benchmarks by 12%.</p>
+<div class="flex gap-sm">
+<span class="bg-primary-container/20 text-primary px-3 py-1 rounded-full text-xs font-bold">Optimized Schedule</span>
+<span class="bg-primary-container/20 text-primary px-3 py-1 rounded-full text-xs font-bold">Strong Objective</span>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-4 bento-card rounded-xl p-lg bg-primary-fixed text-on-primary-fixed">
+<h4 class="font-label-md uppercase tracking-wider mb-sm">Pro Tip</h4>
+<p class="text-body-md font-medium">Use the {{customer_name}} variable in the first 20 characters of your message to increase click-through rates by up to 22%.</p>
+<span class="material-symbols-outlined mt-md text-4xl opacity-40">lightbulb</span>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-surface-container shadow-lg border-t border-outline-variant flex justify-around items-center h-16 px-gutter">
+<div class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-[10px]">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 active:scale-95 transition-transform hover:text-primary">
+<span class="material-symbols-outlined">edit_document</span>
+<span class="font-label-sm text-[10px]">Drafts</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 active:scale-95 transition-transform hover:text-primary">
+<span class="material-symbols-outlined">upload_file</span>
+<span class="font-label-sm text-[10px]">Upload</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 active:scale-95 transition-transform hover:text-primary">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-sm text-[10px]">Settings</span>
+</div>
+</nav>
+<script>
+        let currentStep = 1;
+        const totalSteps = 2;
+
+        const btnNext = document.getElementById('btn-next');
+        const btnBack = document.getElementById('btn-back');
+        const step1 = document.getElementById('wizard-step-1');
+        const step2 = document.getElementById('wizard-step-2');
+        const progressLine = document.getElementById('progress-line');
+        const circles = [
+            document.getElementById('step-1-circle'),
+            document.getElementById('step-2-circle'),
+            document.getElementById('step-3-circle')
+        ];
+
+        btnNext.addEventListener('click', () => {
+            if (currentStep === 1) {
+                step1.classList.remove('active');
+                step2.classList.add('active');
+                btnBack.classList.remove('hidden');
+                btnNext.textContent = 'Review Campaign';
+                progressLine.style.width = '50%';
+                circles[1].classList.replace('bg-surface-container', 'bg-primary');
+                circles[1].classList.replace('text-on-surface-variant', 'text-on-primary');
+                currentStep = 2;
+            } else if (currentStep === 2) {
+                // Final submission or review step logic
+                alert('Campaign saved successfully!');
+            }
+        });
+
+        btnBack.addEventListener('click', () => {
+            if (currentStep === 2) {
+                step2.classList.remove('active');
+                step1.classList.add('active');
+                btnBack.classList.add('hidden');
+                btnNext.textContent = 'Continue to Content';
+                progressLine.style.width = '0%';
+                circles[1].classList.replace('bg-primary', 'bg-surface-container');
+                circles[1].classList.replace('text-on-primary', 'text-on-surface-variant');
+                currentStep = 1;
+            }
+        });
+
+        function insertVar(val) {
+            const editor = document.getElementById('message-editor');
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const text = editor.value;
+            editor.value = text.substring(0, start) + val + text.substring(end);
+            editor.focus();
+        }
+    </script>
+</body></html>
