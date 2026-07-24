@@ -112,4 +112,33 @@ public class InboxController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+
+    @PostMapping("/conversations/{conversationId}/lead-messages")
+    public ResponseEntity<?> receiveLeadMessage(
+            @PathVariable(name = "conversationId") String conversationId,
+            @RequestBody SendMessageRequestDto request) {
+        if (request == null || request.getText() == null || request.getText().trim().isEmpty()) {
+            ErrorResponseDto error = new ErrorResponseDto("INVALID_ARGUMENT", "Message text must not be empty", OffsetDateTime.now());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        try {
+            ConversationMessage message = inboxService.receiveLeadMessage(conversationId, request.getText());
+            MessageDto responseDto = new MessageDto(
+                    message.getId(),
+                    message.getConversationId(),
+                    message.getText(),
+                    message.getSenderType(),
+                    message.getSentAt(),
+                    message.getSenderName()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
+        } catch (IllegalArgumentException e) {
+            ErrorResponseDto error = new ErrorResponseDto("NOT_FOUND", e.getMessage(), OffsetDateTime.now());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            ErrorResponseDto error = new ErrorResponseDto("INTERNAL_ERROR", e.getMessage(), OffsetDateTime.now());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 }
