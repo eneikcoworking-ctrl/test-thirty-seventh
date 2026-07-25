@@ -388,6 +388,7 @@ public class InboxControllerTest {
         assertEquals(5, aiTurnsAfter);
     }
 
+
     @Test
     public void testMessagesQueryIsCachedAndEvicted() throws Exception {
         if (cacheManager != null && cacheManager.getCache(CacheConstants.MESSAGES) != null) {
