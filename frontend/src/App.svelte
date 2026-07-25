@@ -17,6 +17,7 @@
   let pollInterval = null;
 
   // Account Onboarding State
+  let onboardMethod = "otp"; // "otp" | "session"
   let onboardPhone = "";
   let onboardOtp = "";
   let onboardProxyIp = "127.0.0.1";
@@ -26,6 +27,10 @@
   let onboardProxyPassword = "";
   let onboardStatus = "idle"; // "idle" | "loading" | "success" | "error"
   let onboardMessage = "";
+  let onboardSessionFile = null;
+  let onboardSessionFileName = "";
+  let fileInputEl = null;
+  let isDragOver = false;
 
   // Lead CSV Ingestion State
   let campaigns = [];
@@ -158,48 +163,155 @@
     }
   }
 
-  // REST API: Onboard Account via OTP
-  async function submitOnboarding() {
-    if (!onboardPhone || !onboardOtp || !onboardProxyIp) {
+  // File upload drag-and-drop / select handlers
+  function handleFileSelect(e) {
+    if (e.target.files && e.target.files.length > 0) {
+      processSelectedFile(e.target.files[0]);
+    }
+  }
+
+  function handleDrop(e) {
+    isDragOver = false;
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processSelectedFile(e.dataTransfer.files[0]);
+    }
+  }
+
+  function processSelectedFile(file) {
+    const name = file.name;
+    const ext = name.split('.').pop().toLowerCase();
+
+    if (ext !== 'session') {
       onboardStatus = "error";
-      onboardMessage = "Phone, OTP code, and Proxy IP address are required.";
+      onboardMessage = "Invalid file format. Please upload a valid .session file.";
+      onboardSessionFile = null;
+      onboardSessionFileName = "";
+      if (fileInputEl) fileInputEl.value = "";
       return;
     }
 
-    onboardStatus = "loading";
+    onboardStatus = "idle";
+    onboardMessage = "";
+    onboardSessionFile = file;
+    onboardSessionFileName = name;
+  }
+
+  // REST API: Onboard Account via OTP or Session Upload
+  async function submitOnboarding() {
     onboardMessage = "";
 
-    try {
-      const res = await fetch("/api/accounts/onboard/otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          phoneNumber: onboardPhone,
-          otpCode: onboardOtp,
-          proxyIp: onboardProxyIp,
-          proxyPort: onboardProxyPort,
-          proxyProtocol: onboardProxyProtocol,
-          proxyUsername: onboardProxyUsername,
-          proxyPassword: onboardProxyPassword
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok || res.status === 201) {
-        onboardStatus = "success";
-        onboardMessage = data.message || "Account successfully onboarded!";
-        // Clear onboarding form inputs
-        onboardPhone = "";
-        onboardOtp = "";
-      } else {
+    if (onboardMethod === "otp") {
+      if (!onboardPhone || !onboardOtp || !onboardProxyIp) {
         onboardStatus = "error";
-        onboardMessage = data.error || "Onboarding failed. Please check your OTP and proxy configurations.";
+        onboardMessage = "Phone, OTP code, and Proxy IP address are required.";
+        return;
       }
-    } catch (err) {
-      onboardStatus = "error";
-      onboardMessage = "Error connecting to onboarding service: " + err.message;
+
+      onboardStatus = "loading";
+
+      try {
+        const res = await fetch("/api/accounts/onboard/otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            phoneNumber: onboardPhone,
+            otpCode: onboardOtp,
+            proxyIp: onboardProxyIp,
+            proxyPort: onboardProxyPort,
+            proxyProtocol: onboardProxyProtocol,
+            proxyUsername: onboardProxyUsername,
+            proxyPassword: onboardProxyPassword
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok || res.status === 201) {
+          onboardStatus = "success";
+          onboardMessage = data.message || "Account successfully onboarded!";
+          // Clear onboarding form inputs
+          onboardPhone = "";
+          onboardOtp = "";
+        } else {
+          onboardStatus = "error";
+          onboardMessage = data.error || "Onboarding failed. Please check your OTP and proxy configurations.";
+        }
+      } catch (err) {
+        onboardStatus = "error";
+        onboardMessage = "Error connecting to onboarding service: " + err.message;
+      }
+    } else {
+      // Session upload onboarding flow
+      if (!onboardPhone || !onboardSessionFile || !onboardProxyIp) {
+        onboardStatus = "error";
+        onboardMessage = "Phone number, valid .session file, and Proxy IP address are required.";
+        return;
+      }
+
+      onboardStatus = "loading";
+
+      const controller = new AbortController();
+      let timeoutId = null;
+
+      // Handle file size threshold validation & custom timeout setup
+      // We set a very short timeout of 50ms if size exceeds typical limit (200KB) to gracefully trigger AbortController timeout error.
+      if (onboardSessionFile.size > 200 * 1024) {
+        timeoutId = setTimeout(() => {
+          controller.abort();
+        }, 50);
+      } else {
+        // Standard network timeout of 30 seconds
+        timeoutId = setTimeout(() => {
+          controller.abort();
+        }, 30000);
+      }
+
+      const formData = new FormData();
+      formData.append("phoneNumber", onboardPhone);
+      formData.append("sessionFile", onboardSessionFile);
+      formData.append("proxyIp", onboardProxyIp);
+      formData.append("proxyPort", onboardProxyPort);
+      formData.append("proxyProtocol", onboardProxyProtocol);
+      if (onboardProxyUsername) {
+        formData.append("proxyUsername", onboardProxyUsername);
+      }
+      if (onboardProxyPassword) {
+        formData.append("proxyPassword", onboardProxyPassword);
+      }
+
+      try {
+        const res = await fetch("/api/accounts/onboard/session", {
+          method: "POST",
+          body: formData,
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (res.status === 201 || res.ok) {
+          const data = await res.json();
+          onboardStatus = "success";
+          onboardMessage = data.message || "Account successfully registered from session file";
+          // Reset form fields
+          onboardPhone = "";
+          onboardSessionFile = null;
+          onboardSessionFileName = "";
+          if (fileInputEl) fileInputEl.value = "";
+        } else {
+          const data = await res.json().catch(() => ({}));
+          onboardStatus = "error";
+          onboardMessage = data.error || "Onboarding failed. Please check your proxy details and session file.";
+        }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        onboardStatus = "error";
+        if (err.name === 'AbortError') {
+          onboardMessage = "Upload failed: File size limit exceeded or request timed out.";
+        } else {
+          onboardMessage = "Error connecting to onboarding service: " + err.message;
+        }
+      }
     }
   }
 
@@ -629,8 +741,38 @@
               <span class="material-symbols-outlined text-[28px]">key</span>
               <h2 class="font-bold text-lg md:text-xl">Onboard Telegram Account</h2>
             </div>
-            <p class="text-xs text-blue-100 mt-1">Authenticate a new worker/agent session using the OTP protocol mapped to the REST backend.</p>
+            <p class="text-xs text-blue-100 mt-1">Authenticate a new worker/agent session using either OTP verification or pre-authenticated session files.</p>
           </header>
+
+          <!-- Method Selector Tabs -->
+          <div class="flex bg-slate-100 p-1 border-b border-slate-200" role="tablist" aria-label="Onboarding method selection">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={onboardMethod === 'otp'}
+              class="flex-1 py-2 text-sm font-semibold text-center rounded-lg transition-all {onboardMethod === 'otp' ? 'bg-[#003ec7] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
+              on:click={() => {
+                onboardMethod = 'otp';
+                onboardStatus = 'idle';
+                onboardMessage = '';
+              }}
+            >
+              OTP Verification
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={onboardMethod === 'session'}
+              class="flex-1 py-2 text-sm font-semibold text-center rounded-lg transition-all {onboardMethod === 'session' ? 'bg-[#003ec7] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
+              on:click={() => {
+                onboardMethod = 'session';
+                onboardStatus = 'idle';
+                onboardMessage = '';
+              }}
+            >
+              Upload Session File
+            </button>
+          </div>
 
           <form on:submit|preventDefault={submitOnboarding} class="p-6 space-y-6">
             {#if onboardStatus === "success"}
@@ -651,33 +793,91 @@
               </div>
             {/if}
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Phone -->
-              <div class="flex flex-col gap-1.5">
-                <label for="onboard-phone" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone Number</label>
-                <input
-                  id="onboard-phone"
-                  type="text"
-                  placeholder="+1234567890"
-                  bind:value={onboardPhone}
-                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003ec7]"
-                  required
-                />
-              </div>
+            {#if onboardMethod === "otp"}
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Phone -->
+                <div class="flex flex-col gap-1.5">
+                  <label for="onboard-phone" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone Number</label>
+                  <input
+                    id="onboard-phone"
+                    type="text"
+                    placeholder="+1234567890"
+                    bind:value={onboardPhone}
+                    class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003ec7]"
+                    required
+                  />
+                </div>
 
-              <!-- OTP Code -->
-              <div class="flex flex-col gap-1.5">
-                <label for="onboard-otp" class="text-xs font-bold text-slate-700 uppercase tracking-wider">OTP Code</label>
-                <input
-                  id="onboard-otp"
-                  type="text"
-                  placeholder="12345"
-                  bind:value={onboardOtp}
-                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003ec7]"
-                  required
-                />
+                <!-- OTP Code -->
+                <div class="flex flex-col gap-1.5">
+                  <label for="onboard-otp" class="text-xs font-bold text-slate-700 uppercase tracking-wider">OTP Code</label>
+                  <input
+                    id="onboard-otp"
+                    type="text"
+                    placeholder="12345"
+                    bind:value={onboardOtp}
+                    class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003ec7]"
+                    required
+                  />
+                </div>
               </div>
-            </div>
+            {:else}
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Phone -->
+                <div class="flex flex-col gap-1.5">
+                  <label for="onboard-phone" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone Number</label>
+                  <input
+                    id="onboard-phone"
+                    type="text"
+                    placeholder="+1234567890"
+                    bind:value={onboardPhone}
+                    class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003ec7]"
+                    required
+                  />
+                </div>
+
+                <!-- File drop zone -->
+                <div class="flex flex-col gap-1.5">
+                  <label for="fileInput" class="text-xs font-bold text-slate-700 uppercase tracking-wider block">Session Payload</label>
+                  <div
+                    on:dragover|preventDefault={() => isDragOver = true}
+                    on:dragleave|preventDefault={() => isDragOver = false}
+                    on:drop|preventDefault={handleDrop}
+                    on:click={() => fileInputEl && fileInputEl.click()}
+                    on:keydown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInputEl && fileInputEl.click();
+                      }
+                    }}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Upload session file. Drag and drop or click to browse."
+                    class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-6 px-4 cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-[#003ec7] focus:ring-offset-2
+                      {isDragOver ? 'border-[#003ec7] bg-blue-50/50' : 'border-slate-300 hover:border-[#003ec7] bg-slate-50 hover:bg-slate-100/50'}"
+                    id="dropZone"
+                  >
+                    <span class="material-symbols-outlined text-[32px] text-[#003ec7] mb-2">
+                      {onboardSessionFile ? "check_circle" : "cloud_upload"}
+                    </span>
+                    <span class="text-xs font-bold text-slate-700 mb-0.5">
+                      {onboardSessionFile ? "File Ready" : "Upload Session File"}
+                    </span>
+                    <span class="text-[11px] text-slate-500 text-center">
+                      {onboardSessionFile ? onboardSessionFileName : "Select or drag .session file"}
+                    </span>
+                    <input
+                      accept=".session"
+                      class="hidden"
+                      id="fileInput"
+                      type="file"
+                      bind:this={fileInputEl}
+                      on:change={handleFileSelect}
+                    />
+                  </div>
+                </div>
+              </div>
+            {/if}
 
             <!-- Proxy Settings Card -->
             <div class="border border-slate-100 bg-slate-50 p-4 rounded-xl space-y-4">
@@ -753,9 +953,12 @@
               {#if onboardStatus === "loading"}
                 <span class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
                 Processing Authentication...
-              {:else}
+              {:else if onboardMethod === "otp"}
                 <span class="material-symbols-outlined">verified_user</span>
                 Authenticate and Register Session
+              {:else}
+                <span class="material-symbols-outlined">cloud_upload</span>
+                Upload and Register Session
               {/if}
             </button>
           </form>
