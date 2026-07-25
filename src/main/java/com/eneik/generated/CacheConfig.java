@@ -15,8 +15,12 @@ import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Configuration
 @EnableCaching
@@ -53,13 +57,23 @@ public class CacheConfig implements CachingConfigurer {
             log.warn("Redis connection failed during bootstrap. Caching layer will fallback to in-memory mode. Error: {}", e.getMessage(), e);
         }
 
-        ConcurrentMapCacheManager fallbackCacheManager = new ConcurrentMapCacheManager();
+        ConcurrentMapCacheManager fallbackCacheManager = new ConcurrentMapCacheManager() {
+            @Override
+            protected Cache createConcurrentMapCache(String name) {
+                return new org.springframework.cache.concurrent.ConcurrentMapCache(
+                        name,
+                        new BoundedConcurrentMap<>(1000),
+                        isAllowNullValues()
+                );
+            }
+        };
+
         if (redisCacheManager == null) {
-            log.info("Redis is unavailable. Initializing pure in-memory CacheManager.");
+            log.info("Redis is unavailable. Initializing pure in-memory Bounded CacheManager.");
             return fallbackCacheManager;
         }
 
-        log.info("Initializing resilient FailSafeCacheManager wrapping Redis and in-memory fallback.");
+        log.info("Initializing resilient FailSafeCacheManager wrapping Redis and in-memory bounded fallback.");
         return new FailSafeCacheManager(redisCacheManager, fallbackCacheManager);
     }
 
@@ -266,6 +280,87 @@ public class CacheConfig implements CachingConfigurer {
             } catch (Exception e) {
                 log.warn("Fail-safe: Cache invalidate failed in cache '{}'. Falling back to local cache. Error: {}", getName(), e.getMessage());
                 return fallback.invalidate();
+            }
+        }
+    }
+
+    public static class BoundedConcurrentMap<K, V> implements ConcurrentMap<K, V> {
+        private final Map<K, V> delegate;
+
+        public BoundedConcurrentMap(int maxEntries) {
+            this.delegate = java.util.Collections.synchronizedMap(new LinkedHashMap<K, V>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+                    return size() > maxEntries;
+                }
+            });
+        }
+
+        @Override
+        public int size() { return delegate.size(); }
+        @Override
+        public boolean isEmpty() { return delegate.isEmpty(); }
+        @Override
+        public boolean containsKey(Object key) { return delegate.containsKey(key); }
+        @Override
+        public boolean containsValue(Object value) { return delegate.containsValue(value); }
+        @Override
+        public V get(Object key) { return delegate.get(key); }
+        @Override
+        public V put(K key, V value) { return delegate.put(key, value); }
+        @Override
+        public V remove(Object key) { return delegate.remove(key); }
+        @Override
+        public void putAll(Map<? extends K, ? extends V> m) { delegate.putAll(m); }
+        @Override
+        public void clear() { delegate.clear(); }
+        @Override
+        public Set<K> keySet() { return delegate.keySet(); }
+        @Override
+        public Collection<V> values() { return delegate.values(); }
+        @Override
+        public Set<Map.Entry<K, V>> entrySet() { return delegate.entrySet(); }
+
+        @Override
+        public V putIfAbsent(K key, V value) {
+            synchronized (delegate) {
+                if (!delegate.containsKey(key)) {
+                    return delegate.put(key, value);
+                } else {
+                    return delegate.get(key);
+                }
+            }
+        }
+
+        @Override
+        public boolean remove(Object key, Object value) {
+            synchronized (delegate) {
+                if (delegate.containsKey(key) && java.util.Objects.equals(delegate.get(key), value)) {
+                    delegate.remove(key);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        @Override
+        public boolean replace(K key, V oldValue, V newValue) {
+            synchronized (delegate) {
+                if (delegate.containsKey(key) && java.util.Objects.equals(delegate.get(key), oldValue)) {
+                    delegate.put(key, newValue);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        @Override
+        public V replace(K key, V value) {
+            synchronized (delegate) {
+                if (delegate.containsKey(key)) {
+                    return delegate.put(key, value);
+                }
+                return null;
             }
         }
     }

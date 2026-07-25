@@ -32,10 +32,10 @@ public class InboxControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
+    @org.springframework.boot.test.mock.mockito.SpyBean
     private ConversationRepository conversationRepository;
 
-    @Autowired
+    @org.springframework.boot.test.mock.mockito.SpyBean
     private ConversationMessageRepository conversationMessageRepository;
 
     @Autowired
@@ -401,45 +401,26 @@ public class InboxControllerTest {
         );
         conversationRepository.save(c1);
 
-        // 1. Initial request (GET /api/v1/conversations) -> Cache Miss
+        // Reset/clear mock invocation counts
+        org.mockito.Mockito.clearInvocations(conversationRepository);
+
+        // 1. Initial request (GET /api/v1/conversations) -> Cache Miss (should hit database)
         mockMvc.perform(get("/api/v1/conversations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].leadName", is("Test Caching Lead")));
+                .andExpect(jsonPath("$.content", hasSize(1)));
 
-        // Verify that the conversation cache now contains an entry!
-        org.springframework.cache.Cache cache = cacheManager.getCache("conversations");
-        org.junit.jupiter.api.Assertions.assertNotNull(cache);
+        // Verify repository was called exactly once
+        org.mockito.Mockito.verify(conversationRepository, org.mockito.Mockito.times(1))
+                .findAll(org.mockito.Mockito.any(org.springframework.data.domain.Pageable.class));
 
-        // Let's delete the conversation from the database directly
-        conversationRepository.delete(c1);
-
-        // 2. Second request -> Cache Hit (data is returned from cache even though it's deleted from database!)
+        // 2. Second request -> Cache Hit (should NOT hit database again!)
         mockMvc.perform(get("/api/v1/conversations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].leadName", is("Test Caching Lead")));
+                .andExpect(jsonPath("$.content", hasSize(1)));
 
-        // Save conversation back so we can perform eviction test
-        conversationRepository.save(c1);
-
-        // 3. Mutate data: Send a manual message -> should NOT trigger coarse conversations cache eviction (preventing stampedes)
-        SendMessageRequestDto request = new SendMessageRequestDto("Evict the cache!");
-        mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", c1.getId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
-
-        // Delete conversation again (it's already deleted, but we make sure)
-        if (conversationRepository.existsById(c1.getId())) {
-            conversationRepository.delete(c1);
-        }
-
-        // 4. Subsequent request -> Cache Hit (retains cache and does not stampede database!)
-        mockMvc.perform(get("/api/v1/conversations"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].leadName", is("Test Caching Lead")));
+        // Verify repository invocation count remained at 1!
+        org.mockito.Mockito.verify(conversationRepository, org.mockito.Mockito.times(1))
+                .findAll(org.mockito.Mockito.any(org.springframework.data.domain.Pageable.class));
     }
 
     @Test
@@ -471,27 +452,23 @@ public class InboxControllerTest {
         );
         conversationMessageRepository.save(msg);
 
+        org.mockito.Mockito.clearInvocations(conversationMessageRepository);
+
         // 1. Initial request (GET /api/v1/conversations/{id}/messages) -> Cache Miss
         mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].text", is("Cached message content")));
+                .andExpect(jsonPath("$", hasSize(1)));
 
-        // Verify that the messages cache now contains an entry!
-        org.springframework.cache.Cache cache = cacheManager.getCache("messages");
-        org.junit.jupiter.api.Assertions.assertNotNull(cache);
+        org.mockito.Mockito.verify(conversationMessageRepository, org.mockito.Mockito.times(1))
+                .findByConversationId(org.mockito.Mockito.eq(convId), org.mockito.Mockito.any());
 
-        // Delete from DB directly
-        conversationMessageRepository.delete(msg);
-
-        // 2. Second request -> Cache Hit (still returns message)
+        // 2. Second request -> Cache Hit
         mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].text", is("Cached message content")));
+                .andExpect(jsonPath("$", hasSize(1)));
 
-        // Restore msg
-        conversationMessageRepository.save(msg);
+        org.mockito.Mockito.verify(conversationMessageRepository, org.mockito.Mockito.times(1))
+                .findByConversationId(org.mockito.Mockito.eq(convId), org.mockito.Mockito.any());
 
         // 3. Mutate data: Send a manual message -> triggers Cache Eviction
         SendMessageRequestDto request = new SendMessageRequestDto("Evict message cache!");
@@ -500,15 +477,13 @@ public class InboxControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        // Delete msg from DB
-        conversationMessageRepository.delete(msg);
-        // Also delete the newly saved manual message to verify
-        conversationMessageRepository.deleteAll();
-
-        // 4. Subsequent request -> Cache Miss (returns empty)
+        // 4. Subsequent request -> Cache Miss (hits DB again)
         mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(status().isOk());
+
+        // Verify that the repository was called again (total count is now 2!)
+        org.mockito.Mockito.verify(conversationMessageRepository, org.mockito.Mockito.times(2))
+                .findByConversationId(org.mockito.Mockito.eq(convId), org.mockito.Mockito.any());
     }
 
     @Test

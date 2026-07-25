@@ -2,6 +2,8 @@ package com.eneik.generated.leadgen.service;
 
 import com.eneik.generated.leadgen.model.Conversation;
 import com.eneik.generated.leadgen.model.ConversationMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
 import org.springframework.data.domain.Page;
@@ -152,5 +154,27 @@ public class InboxService {
         conversationRepository.save(conversation);
 
         return savedLeadMessage;
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(InboxService.class);
+
+    @Transactional
+    @CacheEvict(value = "conversations", allEntries = true)
+    public Conversation getOrCreateConversation(Long telegramChatId, String leadName, String leadUsername, String leadPhone) {
+        return conversationRepository.findByTelegramChatId(telegramChatId)
+                .orElseGet(() -> {
+                    log.info("Creating new conversation for chat ID: {}", telegramChatId);
+                    Conversation newConv = new Conversation();
+                    newConv.setId(UUID.randomUUID().toString());
+                    newConv.setTelegramChatId(telegramChatId);
+                    newConv.setLeadName(leadName != null ? leadName : "Lead " + telegramChatId);
+                    newConv.setLeadUsername(leadUsername);
+                    newConv.setLeadPhone(leadPhone);
+                    newConv.setStatus("ACTIVE");
+                    OffsetDateTime now = OffsetDateTime.now();
+                    newConv.setCreatedAt(now);
+                    newConv.setLastMessageAt(now);
+                    return conversationRepository.save(newConv);
+                });
     }
 }
