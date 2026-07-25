@@ -376,7 +376,7 @@ public class InboxControllerTest {
         assertEquals(5, aiTurnsAfter);
     }
 
-    @Autowired
+    @org.springframework.boot.test.mock.mockito.SpyBean
     private org.springframework.cache.CacheManager cacheManager;
 
     @Test
@@ -470,5 +470,98 @@ public class InboxControllerTest {
 
         failSafeCache.put("test_key", "test_value");
         org.junit.jupiter.api.Assertions.assertEquals("test_value", localFallbackCache.get("test_key").get());
+    }
+
+    @Test
+    public void testCorruptedPayloadFallback_ServiceSucceedsAndFetchesFromDatabase() throws Exception {
+        if (cacheManager != null && cacheManager.getCache("messages") != null) {
+            cacheManager.getCache("messages").clear();
+        }
+
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                1234567L,
+                "Corrupt Caching Lead",
+                "corrupt_cache",
+                "+1234567",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        ConversationMessage msg = new ConversationMessage(
+                UUID.randomUUID().toString(),
+                convId,
+                "Real DB message content",
+                "LEAD",
+                OffsetDateTime.now(),
+                "Corrupt Caching Lead"
+        );
+        conversationMessageRepository.save(msg);
+
+        org.springframework.cache.Cache mockBadDelegate = org.mockito.Mockito.mock(org.springframework.cache.Cache.class);
+        org.mockito.Mockito.when(mockBadDelegate.getName()).thenReturn("messages");
+        org.mockito.Mockito.when(mockBadDelegate.get(convId)).thenThrow(new RuntimeException("Simulated corrupted payload/deserialization failure!"));
+
+        org.springframework.cache.Cache mockBadFallback = org.mockito.Mockito.mock(org.springframework.cache.Cache.class);
+        org.mockito.Mockito.when(mockBadFallback.getName()).thenReturn("messages");
+        org.mockito.Mockito.when(mockBadFallback.get(convId)).thenThrow(new RuntimeException("Simulated fallback failure!"));
+
+        com.eneik.generated.CacheConfig.FailSafeCache failSafeCache = new com.eneik.generated.CacheConfig.FailSafeCache(mockBadDelegate, mockBadFallback);
+
+        org.springframework.cache.Cache.ValueWrapper result = failSafeCache.get(convId);
+        org.junit.jupiter.api.Assertions.assertNull(result);
+
+        org.mockito.Mockito.doReturn(failSafeCache).when(cacheManager).getCache("messages");
+
+        try {
+            mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)))
+                    .andExpect(jsonPath("$[0].text", is("Real DB message content")));
+        } finally {
+            org.mockito.Mockito.reset(cacheManager);
+        }
+    }
+
+    @Test
+    public void testLeadReplyEvictsCache() throws Exception {
+        if (cacheManager != null && cacheManager.getCache("messages") != null) {
+            cacheManager.getCache("messages").clear();
+        }
+
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                12345678L,
+                "Lead Evicting Caching Lead",
+                "lead_evict_cache",
+                "+12345678",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.reset(conversationMessageRepository);
+
+        SendMessageRequestDto leadMsg = new SendMessageRequestDto("Lead replies to evict!");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/lead-messages", convId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(leadMsg)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(conversationMessageRepository, org.mockito.Mockito.atLeastOnce())
+                .findByConversationId(org.mockito.Mockito.eq(convId), org.mockito.Mockito.any());
     }
 }

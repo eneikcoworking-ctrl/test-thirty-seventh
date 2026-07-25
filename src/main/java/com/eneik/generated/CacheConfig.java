@@ -3,11 +3,13 @@ package com.eneik.generated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
+import org.springframework.cache.Cache.ValueWrapper;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.cache.interceptor.CacheErrorHandler;
+import org.springframework.cache.support.SimpleValueWrapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -167,11 +169,26 @@ public class CacheConfig implements CachingConfigurer {
         @Override
         public ValueWrapper get(Object key) {
             try {
-                return delegate.get(key);
+                ValueWrapper dWrapper = delegate.get(key);
+                if (dWrapper != null) {
+                    Object value = dWrapper.get();
+                    return new SimpleValueWrapper(value);
+                }
             } catch (Exception e) {
-                log.warn("Fail-safe: Cache GET failed for key '{}' in cache '{}'. Falling back to local cache. Error: {}", key, getName(), e.getMessage());
-                return fallback.get(key);
+                log.warn("Fail-safe: Cache GET/deserialization failed for key '{}' in cache '{}'. Falling back to local cache. Error: {}", key, getName(), e.getMessage(), e);
             }
+
+            try {
+                ValueWrapper fWrapper = fallback.get(key);
+                if (fWrapper != null) {
+                    Object value = fWrapper.get();
+                    return new SimpleValueWrapper(value);
+                }
+            } catch (Exception e) {
+                log.warn("Fail-safe: Fallback Cache GET/deserialization failed for key '{}' in cache '{}'. Error: {}", key, getName(), e.getMessage(), e);
+            }
+
+            return null;
         }
 
         @Override
@@ -180,7 +197,12 @@ public class CacheConfig implements CachingConfigurer {
                 return delegate.get(key, type);
             } catch (Exception e) {
                 log.warn("Fail-safe: Cache GET (typed) failed for key '{}' in cache '{}'. Falling back to local cache. Error: {}", key, getName(), e.getMessage());
-                return fallback.get(key, type);
+                try {
+                    return fallback.get(key, type);
+                } catch (Exception ex) {
+                    log.warn("Fail-safe: Fallback Cache GET (typed) failed for key '{}' in cache '{}'. Error: {}", key, getName(), ex.getMessage());
+                    return null;
+                }
             }
         }
 
@@ -219,11 +241,24 @@ public class CacheConfig implements CachingConfigurer {
         @Override
         public ValueWrapper putIfAbsent(Object key, Object value) {
             try {
-                return delegate.putIfAbsent(key, value);
+                ValueWrapper dWrapper = delegate.putIfAbsent(key, value);
+                if (dWrapper != null) {
+                    return new SimpleValueWrapper(dWrapper.get());
+                }
             } catch (Exception e) {
                 log.warn("Fail-safe: Cache putIfAbsent failed for key '{}' in cache '{}'. Falling back to local cache. Error: {}", key, getName(), e.getMessage());
-                return fallback.putIfAbsent(key, value);
             }
+
+            try {
+                ValueWrapper fWrapper = fallback.putIfAbsent(key, value);
+                if (fWrapper != null) {
+                    return new SimpleValueWrapper(fWrapper.get());
+                }
+            } catch (Exception e) {
+                log.warn("Fail-safe: Fallback Cache putIfAbsent failed for key '{}' in cache '{}'. Error: {}", key, getName(), e.getMessage());
+            }
+
+            return null;
         }
 
         @Override
