@@ -8,9 +8,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "campaigns")
-public class Campaign implements java.io.Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class Campaign {
 
     @Id
     @Column(length = 36)

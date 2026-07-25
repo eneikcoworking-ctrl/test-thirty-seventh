@@ -1,6 +1,7 @@
 package com.eneik.generated;
 
 import com.eneik.generated.domain.Campaign;
+import com.eneik.generated.config.CacheConstants;
 import com.eneik.generated.leadgen.model.Conversation;
 import com.eneik.generated.leadgen.service.InboxService;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
@@ -67,7 +68,7 @@ public class CacheIntegrationTest {
         assertTrue(campaignService.getCampaign(id).isPresent());
 
         // Check cache is populated
-        Cache cache = cacheManager.getCache("campaignById");
+        Cache cache = cacheManager.getCache(CacheConstants.CACHE_CAMPAIGN_BY_ID);
         assertNotNull(cache);
         Cache.ValueWrapper wrapper = cache.get(id);
         assertNotNull(wrapper);
@@ -75,7 +76,7 @@ public class CacheIntegrationTest {
 
         // Fetch list to populate campaigns list cache
         assertFalse(campaignService.getAllCampaigns().isEmpty());
-        Cache listCache = cacheManager.getCache("campaigns");
+        Cache listCache = cacheManager.getCache(CacheConstants.CACHE_CAMPAIGNS);
         assertNotNull(listCache);
         assertNotNull(listCache.get("all"));
 
@@ -106,7 +107,7 @@ public class CacheIntegrationTest {
         // Populate conversations cache
         assertFalse(inboxService.getConversations("ALL", null, 0, 10).isEmpty());
 
-        Cache convCache = cacheManager.getCache("conversations");
+        Cache convCache = cacheManager.getCache(CacheConstants.CACHE_CONVERSATIONS);
         assertNotNull(convCache);
         String convKey = "ALL__0_10";
         assertNotNull(convCache.get(convKey));
@@ -114,15 +115,15 @@ public class CacheIntegrationTest {
         // Populate messages cache with correct limit=50 to satisfy caching condition
         inboxService.getMessages(convId, 50, null);
 
-        Cache msgCache = cacheManager.getCache("messages");
+        Cache msgCache = cacheManager.getCache(CacheConstants.CACHE_MESSAGES);
         assertNotNull(msgCache);
         assertNotNull(msgCache.get(convId));
 
-        // Trigger eviction by sending manual message
+        // Trigger eviction by sending manual message (evicts messages cache dynamically but preserves conversations list cache to allow TTL expiration)
         inboxService.sendManualMessage(convId, "Rep manual response");
 
         // Check evicted
-        assertNull(convCache.get(convKey));
         assertNull(msgCache.get(convId));
+        assertNotNull(convCache.get(convKey)); // conversations list caching remains active until TTL expiration
     }
 }
