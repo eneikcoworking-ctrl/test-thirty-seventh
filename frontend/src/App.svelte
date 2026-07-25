@@ -760,18 +760,25 @@
 
                     <div class="flex items-center gap-2 mb-1.5">
                       <span class="text-xs font-medium text-slate-500">@{chat.leadUsername || "no_username"}</span>
-                      {#if chat.status === 'ESCALATED'}
-                        <span class="bg-yellow-200 text-yellow-900 border border-yellow-400 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
-                          <span class="material-symbols-outlined text-[10px]">auto_awesome</span>
-                          AI Hand-off
+                      {#if chat.status === 'ACTIVE'}
+                        <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
+                          <span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+                          AI Active
                         </span>
-                      {:else if chat.status === 'PAUSED'}
-                        <span class="bg-blue-50 text-blue-600 border border-blue-200 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
-                          Paused AI
+                      {:else if chat.status === 'ESCALATED'}
+                        <span class="bg-amber-100 text-amber-800 border border-amber-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
+                          <span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">warning</span>
+                          Human Intervention Required
                         </span>
                       {:else if chat.status === 'RESOLVED'}
-                        <span class="bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
-                          Resolved
+                        <span class="bg-blue-100 text-blue-800 border border-blue-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
+                          <span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                          Closed/Converted
+                        </span>
+                      {:else if chat.status === 'PAUSED'}
+                        <span class="bg-rose-100 text-rose-800 border border-rose-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
+                          <span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">block</span>
+                          Spam/Blocked
                         </span>
                       {/if}
                     </div>
@@ -802,10 +809,25 @@
                 <div>
                   <div class="flex items-center gap-2">
                     <h2 class="font-bold text-sm text-slate-900">{activeChat.leadName || activeChat.leadUsername || "Lead"}</h2>
-                    {#if activeChat.status === 'ESCALATED'}
-                      <span class="bg-yellow-100 text-yellow-800 border border-yellow-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5 animate-pulse">
+                    {#if activeChat.status === 'ACTIVE'}
+                      <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+                        <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+                        AI Active
+                      </span>
+                    {:else if activeChat.status === 'ESCALATED'}
+                      <span class="bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5 animate-pulse">
                         <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">warning</span>
-                        AI Escalated
+                        Human Intervention Required
+                      </span>
+                    {:else if activeChat.status === 'RESOLVED'}
+                      <span class="bg-blue-100 text-blue-800 border border-blue-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+                        <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Closed/Converted
+                      </span>
+                    {:else if activeChat.status === 'PAUSED'}
+                      <span class="bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+                        <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">block</span>
+                        Spam/Blocked
                       </span>
                     {/if}
                   </div>
