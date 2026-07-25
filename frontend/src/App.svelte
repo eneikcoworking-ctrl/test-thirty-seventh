@@ -55,7 +55,7 @@
   // Reactivity Calculations
   $: activeChat = chats.find(c => c.id === selectedChatId);
   $: escalatedCount = chats.filter(c => c.status === "ESCALATED").length;
-  $: activeDealsCount = chats.filter(c => c.status !== "RESOLVED").length;
+  $: activeDealsCount = chats.filter(c => c.status !== "RESOLVED" && c.status !== "CLOSED" && c.status !== "CONVERTED").length;
 
   $: filteredChats = chats.filter(chat => {
     // Search filter
@@ -71,7 +71,7 @@
     // Category filter
     if (filterType === "escalated") return chat.status === "ESCALATED";
     if (filterType === "regular") return chat.status === "ACTIVE" || chat.status === "PAUSED";
-    if (filterType === "closed") return chat.status === "RESOLVED";
+    if (filterType === "closed") return chat.status === "RESOLVED" || chat.status === "CLOSED" || chat.status === "CONVERTED";
     return true;
   });
 
@@ -90,7 +90,9 @@
           await loadMessages(selectedChatId, true);
         } else if (chats.length > 0 && !selectedChatId) {
           // Default to the first chat on desktop to avoid empty states
-          await selectChat(chats[0].id);
+          if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+            await selectChat(chats[0].id);
+          }
         }
       } else {
         console.error("Failed to load conversations:", res.statusText);
@@ -758,20 +760,32 @@
                       </span>
                     </div>
 
-                    <div class="flex items-center gap-2 mb-1.5">
+                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
                       <span class="text-xs font-medium text-slate-500">@{chat.leadUsername || "no_username"}</span>
-                      {#if chat.status === 'ESCALATED'}
-                        <span class="bg-yellow-200 text-yellow-900 border border-yellow-400 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
-                          <span class="material-symbols-outlined text-[10px]">auto_awesome</span>
-                          AI Hand-off
+                      {#if chat.status === 'ACTIVE'}
+                        <span class="bg-green-100 text-green-800 border border-green-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
+                          AI Active
+                        </span>
+                      {:else if chat.status === 'ESCALATED'}
+                        <span class="bg-yellow-100 text-yellow-800 border border-yellow-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
+                          <span class="material-symbols-outlined text-[10px]">warning</span>
+                          Human Intervention Required
                         </span>
                       {:else if chat.status === 'PAUSED'}
                         <span class="bg-blue-50 text-blue-600 border border-blue-200 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
                           Paused AI
                         </span>
-                      {:else if chat.status === 'RESOLVED'}
-                        <span class="bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
-                          Resolved
+                      {:else if chat.status === 'RESOLVED' || chat.status === 'CLOSED' || chat.status === 'CONVERTED'}
+                        <span class="bg-blue-100 text-blue-800 border border-blue-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
+                          Closed/Converted
+                        </span>
+                      {:else if chat.status === 'SPAM' || chat.status === 'BLOCKED'}
+                        <span class="bg-red-100 text-red-800 border border-red-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
+                          Spam/Blocked
+                        </span>
+                      {:else}
+                        <span class="bg-slate-100 text-slate-800 border border-slate-300 font-semibold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
+                          {chat.status}
                         </span>
                       {/if}
                     </div>
@@ -800,12 +814,33 @@
                   {(activeChat.leadName || activeChat.leadUsername || "U").charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <h2 class="font-bold text-sm text-slate-900">{activeChat.leadName || activeChat.leadUsername || "Lead"}</h2>
-                    {#if activeChat.status === 'ESCALATED'}
+                    {#if activeChat.status === 'ACTIVE'}
+                      <span class="bg-green-100 text-green-800 border border-green-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5">
+                        <span class="material-symbols-outlined text-[11px]">auto_awesome</span>
+                        AI Active
+                      </span>
+                    {:else if activeChat.status === 'ESCALATED'}
                       <span class="bg-yellow-100 text-yellow-800 border border-yellow-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5 animate-pulse">
-                        <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">warning</span>
-                        AI Escalated
+                        <span class="material-symbols-outlined text-[11px]">warning</span>
+                        Human Intervention Required
+                      </span>
+                    {:else if activeChat.status === 'PAUSED'}
+                      <span class="bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                        Paused AI
+                      </span>
+                    {:else if activeChat.status === 'RESOLVED' || activeChat.status === 'CLOSED' || activeChat.status === 'CONVERTED'}
+                      <span class="bg-blue-100 text-blue-800 border border-blue-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                        Closed/Converted
+                      </span>
+                    {:else if activeChat.status === 'SPAM' || activeChat.status === 'BLOCKED'}
+                      <span class="bg-red-100 text-red-800 border border-red-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                        Spam/Blocked
+                      </span>
+                    {:else}
+                      <span class="bg-slate-100 text-slate-800 border border-slate-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                        {activeChat.status}
                       </span>
                     {/if}
                   </div>
