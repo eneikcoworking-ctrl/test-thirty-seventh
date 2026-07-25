@@ -142,7 +142,7 @@ public class CacheIntegrationTest {
             ObjectMapper.DefaultTyping.NON_FINAL,
             JsonTypeInfo.As.PROPERTY
         );
-        objectMapper.registerModule(new com.eneik.generated.config.CacheConfig.PageJacksonModule());
+        objectMapper.registerModule(new com.eneik.generated.CacheConfig.PageJacksonModule());
         objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
