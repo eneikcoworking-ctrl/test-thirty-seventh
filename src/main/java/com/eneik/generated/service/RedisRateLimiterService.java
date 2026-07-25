@@ -60,6 +60,8 @@ public class RedisRateLimiterService {
             }
             if (current != null && current > limit) {
                 log.info("Redis rate limit exceeded for account: {}. Count: {}, Limit: {}", tgAccountId, current, limit);
+                // To keep the count accurate and not lock it indefinitely above the limit, we decrement it back
+                redisTemplate.opsForValue().decrement(key);
                 return false;
             }
             log.info("Incremented Redis rate-limiter for account {}. New count: {}", tgAccountId, current);
@@ -68,6 +70,22 @@ public class RedisRateLimiterService {
             log.error("Failed to increment Redis rate-limiter. Marking Redis as unavailable. Error: {}", e.getMessage());
             availabilityChecker.markAsUnavailable();
             return false;
+        }
+    }
+
+    /**
+     * Decrements the rate limit counter for a given Telegram account (e.g. on failover rollback).
+     */
+    public void decrementCount(Long tgAccountId) {
+        if (!availabilityChecker.isAvailable()) {
+            return;
+        }
+        try {
+            String key = RATE_LIMIT_PREFIX + tgAccountId;
+            redisTemplate.opsForValue().decrement(key);
+            log.info("Decremented Redis rate-limiter for account {}.", tgAccountId);
+        } catch (Exception e) {
+            log.error("Failed to decrement Redis rate-limiter. Error: {}", e.getMessage());
         }
     }
 

@@ -38,6 +38,7 @@ public class DispatchService {
     @Value("${app.rate-limiting.daily-limit:15}")
     private int dailyLimit = 15;
 
+    // Backward-compatible constructor for existing tests/injectors that don't pass Redis components
     public DispatchService(TgAccountRepository tgAccountRepository,
                            OutboundDispatchRepository outboundDispatchRepository,
                            TelegramBridgeService telegramBridgeService) {
@@ -76,9 +77,14 @@ public class DispatchService {
         // 2. Enforce the rate limit (Redis-backed rate-limiter with sliding 24-hour database fallback check)
         boolean limitReached;
         if (redisActive) {
-            // Check atomic limit first without doing increment yet (to prevent incrementing pre-maturely or on simple query checks)
-            limitReached = redisRateLimiterService.isLimitExceeded(tgAccountId, dailyLimit)
-                    || tgAccount.getDailyDispatchCount() >= tgAccount.getDailyDispatchLimit();
+            // First check if DB limit is reached
+            if (tgAccount.getDailyDispatchCount() >= tgAccount.getDailyDispatchLimit()) {
+                limitReached = true;
+            } else {
+                // Perform atomic check and increment to prevent check-then-act race conditions
+                boolean incrementOk = redisRateLimiterService.tryIncrementAtomic(tgAccountId, dailyLimit);
+                limitReached = !incrementOk;
+            }
         } else {
             // Redis is down, fall back to sliding 24h DB limit
             LocalDateTime threshold = LocalDateTime.now().minusHours(24);
@@ -99,8 +105,13 @@ public class DispatchService {
                     }
                     boolean candidateExceeded;
                     if (redisActive) {
-                        candidateExceeded = redisRateLimiterService.isLimitExceeded(candidate.getId(), dailyLimit)
-                                || candidate.getDailyDispatchCount() >= candidate.getDailyDispatchLimit();
+                        if (candidate.getDailyDispatchCount() >= candidate.getDailyDispatchLimit()) {
+                            candidateExceeded = true;
+                        } else {
+                            // Try atomic check and increment on candidate
+                            boolean candidateIncrementOk = redisRateLimiterService.tryIncrementAtomic(candidate.getId(), dailyLimit);
+                            candidateExceeded = !candidateIncrementOk;
+                        }
                     } else {
                         LocalDateTime threshold = LocalDateTime.now().minusHours(24);
                         long candidateCount = outboundDispatchRepository.countByTgAccountIdAndDispatchedAtAfter(candidate.getId(), threshold);
@@ -123,28 +134,18 @@ public class DispatchService {
             }
         }
 
-        // 3. Increment Redis rate limiter atomically and push to Redis queue if Redis is available.
-        // Doing this in an atomic block prevents race conditions under high concurrency.
-        if (redisActive) {
-            boolean incrementOk = redisRateLimiterService.tryIncrementAtomic(tgAccount.getId(), dailyLimit);
-            if (!incrementOk) {
-                log.warn("Redis atomic rate limit increment failed or limit was exceeded concurrently for account: {}", tgAccount.getId());
-                return null;
-            }
+        // 3. Push to Redis queue if Redis is available.
+        if (redisActive && campaignId != null && !campaignId.trim().isEmpty()) {
+            boolean queued = redisQueueService.pushToQueue(campaignId, recipientPhoneOrUsername, text);
+            if (queued) {
+                // Update DB dispatch metadata and exit gracefully without duplicate execution
+                tgAccount.setDailyDispatchCount(tgAccount.getDailyDispatchCount() + 1);
+                tgAccountRepository.save(tgAccount);
 
-            // Push to Redis Queue as requested (and do not immediately run synchronous bridges during happy path!)
-            if (campaignId != null && !campaignId.trim().isEmpty()) {
-                boolean queued = redisQueueService.pushToQueue(campaignId, recipientPhoneOrUsername, text);
-                if (queued) {
-                    // Update DB dispatch metadata and exit gracefully without duplicate execution
-                    tgAccount.setDailyDispatchCount(tgAccount.getDailyDispatchCount() + 1);
-                    tgAccountRepository.save(tgAccount);
-
-                    OutboundDispatch outboundDispatch = new OutboundDispatch(tgAccount, campaignId, recipientPhoneOrUsername);
-                    return outboundDispatchRepository.save(outboundDispatch);
-                } else {
-                    log.warn("Redis queue push failed even though checker showed active. Falling back to immediate DB execution.");
-                }
+                OutboundDispatch outboundDispatch = new OutboundDispatch(tgAccount, campaignId, recipientPhoneOrUsername);
+                return outboundDispatchRepository.save(outboundDispatch);
+            } else {
+                log.warn("Redis queue push failed even though checker showed active. Falling back to immediate DB execution.");
             }
         }
 

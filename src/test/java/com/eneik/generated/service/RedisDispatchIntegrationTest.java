@@ -68,6 +68,7 @@ public class RedisDispatchIntegrationTest {
             RedisConnectionFactory factory = mock(RedisConnectionFactory.class);
             RedisConnection connection = mock(RedisConnection.class);
             when(factory.getConnection()).thenReturn(connection);
+            when(connection.ping()).thenReturn("PONG");
             return factory;
         }
 
@@ -98,6 +99,7 @@ public class RedisDispatchIntegrationTest {
         activeAccount = new TgAccount();
         activeAccount.setPhoneNumber("+1234567890");
         activeAccount.setStatus("Active");
+        activeAccount.setDailyDispatchLimit(10);
         activeAccount = tgAccountRepository.save(activeAccount);
 
         // Save a standard Campaign
@@ -136,7 +138,6 @@ public class RedisDispatchIntegrationTest {
         assertEquals(campaignId, dispatch.getCampaignId());
 
         // Verify that Redis was called to check rate limits, push to list, and increment count atomically
-        verify(mockValOps, atLeastOnce()).get("rate:limit:account:" + accountId);
         verify(mockListOps, times(1)).rightPush(eq("campaign:dispatch:queue:" + campaignId), eq("@prospect_user::Hello @prospect_user!"));
         verify(mockValOps, times(1)).increment("rate:limit:account:" + accountId);
     }
@@ -146,7 +147,7 @@ public class RedisDispatchIntegrationTest {
         // Setup mocks
         ValueOperations<String, String> mockValOps = mock(ValueOperations.class);
         when(mockRedisTemplate.opsForValue()).thenReturn(mockValOps);
-        when(mockValOps.get(anyString())).thenReturn("3"); // simulating 3 counts in Redis (limit reached)
+        when(mockValOps.increment(anyString())).thenReturn(4L); // simulating count goes above limit (limit is 3, returns 4)
 
         // Force Redis Availability to true
         redisAvailabilityChecker.setAvailableOverride(true);
@@ -167,6 +168,9 @@ public class RedisDispatchIntegrationTest {
 
         // Then it should return null to pause gracefully
         assertNull(dispatch);
+
+        // Verify that decrement was called to keep count accurate after exceeding
+        verify(mockValOps, times(1)).decrement("rate:limit:account:" + accountId);
     }
 
     @Test

@@ -5,12 +5,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import java.net.Socket;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Configuration
@@ -43,23 +43,22 @@ public class RedisConfig {
 
     @Bean
     public RedisAvailabilityChecker redisAvailabilityChecker(RedisConnectionFactory connectionFactory) {
-        return new RedisAvailabilityChecker(redisHost, redisPort);
+        return new RedisAvailabilityChecker(connectionFactory);
     }
 
     /**
      * Resilient circuit-breaker-like availability checker.
-     * Checks if socket is open, caching the result to avoid connection overhead under load.
+     * Uses standard RedisConnectionFactory.getConnection().ping() capability
+     * to check Redis health robustly while caching results to align with connection pool states.
      */
     public static class RedisAvailabilityChecker {
-        private final String host;
-        private final int port;
+        private final RedisConnectionFactory connectionFactory;
         private final AtomicBoolean isAvailable = new AtomicBoolean(false);
         private Boolean isAvailableOverride = null; // for testing
         private long lastCheckTime = 0;
 
-        public RedisAvailabilityChecker(String host, int port) {
-            this.host = host;
-            this.port = port;
+        public RedisAvailabilityChecker(RedisConnectionFactory connectionFactory) {
+            this.connectionFactory = connectionFactory;
             checkConnection();
         }
 
@@ -69,9 +68,11 @@ public class RedisConfig {
                 return;
             }
             lastCheckTime = now;
-            try (Socket socket = new Socket(host, port)) {
-                isAvailable.set(true);
+            try (RedisConnection connection = connectionFactory.getConnection()) {
+                String response = connection.ping();
+                isAvailable.set("PONG".equalsIgnoreCase(response));
             } catch (Exception e) {
+                log.debug("Redis ping connection check failed: {}", e.getMessage());
                 isAvailable.set(false);
             }
         }
