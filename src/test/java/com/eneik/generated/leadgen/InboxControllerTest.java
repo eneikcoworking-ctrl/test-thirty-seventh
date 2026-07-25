@@ -45,6 +45,12 @@ public class InboxControllerTest {
     public void setup() {
         conversationMessageRepository.deleteAll();
         conversationRepository.deleteAll();
+        if (cacheManager != null) {
+            org.springframework.cache.Cache convCache = cacheManager.getCache("conversations");
+            if (convCache != null) convCache.clear();
+            org.springframework.cache.Cache msgCache = cacheManager.getCache("messages");
+            if (msgCache != null) msgCache.clear();
+        }
     }
 
     @Test
@@ -417,20 +423,23 @@ public class InboxControllerTest {
         // Save conversation back so we can perform eviction test
         conversationRepository.save(c1);
 
-        // 3. Mutate data: Send a manual message -> should trigger Cache Eviction
+        // 3. Mutate data: Send a manual message -> should NOT trigger coarse conversations cache eviction (preventing stampedes)
         SendMessageRequestDto request = new SendMessageRequestDto("Evict the cache!");
         mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", c1.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        // Delete conversation again to verify eviction occurred (subsequent fetch must hit DB and return empty/stale error)
-        conversationRepository.delete(c1);
+        // Delete conversation again (it's already deleted, but we make sure)
+        if (conversationRepository.existsById(c1.getId())) {
+            conversationRepository.delete(c1);
+        }
 
-        // 4. Subsequent request -> Cache Miss (fails to find in database and returns empty because cache was evicted!)
+        // 4. Subsequent request -> Cache Hit (retains cache and does not stampede database!)
         mockMvc.perform(get("/api/v1/conversations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(0)));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].leadName", is("Test Caching Lead")));
     }
 
     @Test
@@ -500,5 +509,37 @@ public class InboxControllerTest {
         mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    public void testFailSafeFallback_WhenRedisThrowsException_ServiceSucceeds() throws Exception {
+        org.springframework.cache.Cache mockRedisCache = org.mockito.Mockito.mock(org.springframework.cache.Cache.class);
+        org.mockito.Mockito.when(mockRedisCache.getName()).thenReturn("conversations");
+        org.mockito.Mockito.when(mockRedisCache.get(org.mockito.Mockito.any())).thenThrow(new RuntimeException("Redis connection refused!"));
+        org.mockito.Mockito.doThrow(new RuntimeException("Redis connection refused!")).when(mockRedisCache).put(org.mockito.Mockito.any(), org.mockito.Mockito.any());
+
+        org.springframework.cache.concurrent.ConcurrentMapCache localFallbackCache = new org.springframework.cache.concurrent.ConcurrentMapCache("conversations");
+
+        com.eneik.generated.CacheConfig.FailSafeCache failSafeCache = new com.eneik.generated.CacheConfig.FailSafeCache(mockRedisCache, localFallbackCache);
+
+        Conversation c = new Conversation(
+                UUID.randomUUID().toString(),
+                999999L,
+                "FailSafe Lead",
+                "failsafe",
+                "+999999",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        localFallbackCache.put("ALL:NONE:0:20", new org.springframework.data.domain.PageImpl<>(java.util.List.of(c)));
+
+        org.springframework.cache.Cache.ValueWrapper wrapper = failSafeCache.get("ALL:NONE:0:20");
+        org.junit.jupiter.api.Assertions.assertNotNull(wrapper);
+        org.junit.jupiter.api.Assertions.assertEquals(localFallbackCache.get("ALL:NONE:0:20").get(), wrapper.get());
+
+        failSafeCache.put("test_key", "test_value");
+        org.junit.jupiter.api.Assertions.assertEquals("test_value", localFallbackCache.get("test_key").get());
     }
 }

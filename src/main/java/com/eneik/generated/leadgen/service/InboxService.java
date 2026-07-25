@@ -34,7 +34,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "conversations", key = "T(java.util.Objects).toString(#status) + ':' + T(java.util.Objects).toString(#assignedAgentId) + ':' + #page + ':' + #limit")
+    @Cacheable(value = "conversations", key = "(#status != null ? #status : 'ALL') + ':' + (#assignedAgentId != null ? #assignedAgentId : 'NONE') + ':' + #page + ':' + #limit")
     public Page<Conversation> getConversations(String status, String assignedAgentId, int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
 
@@ -53,7 +53,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "messages", key = "#conversationId + ':' + #limit + ':' + T(java.util.Objects).toString(#beforeMessageId)")
+    @Cacheable(value = "messages", key = "#conversationId", condition = "#beforeMessageId == null")
     public List<ConversationMessage> getMessages(String conversationId, int limit, String beforeMessageId) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "sentAt"));
         if (beforeMessageId != null && !beforeMessageId.trim().isEmpty()) {
@@ -64,10 +64,7 @@ public class InboxService {
     }
 
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "conversations", allEntries = true),
-        @CacheEvict(value = "messages", allEntries = true)
-    })
+    @CacheEvict(value = "messages", key = "#conversationId")
     public ConversationMessage sendManualMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -103,10 +100,7 @@ public class InboxService {
      * the lead reply is saved but the AI ignores it (no automated AI response is added).
      */
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "conversations", allEntries = true),
-        @CacheEvict(value = "messages", allEntries = true)
-    })
+    @CacheEvict(value = "messages", key = "#conversationId")
     public ConversationMessage receiveLeadMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
