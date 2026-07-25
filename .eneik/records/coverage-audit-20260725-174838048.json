@@ -1,0 +1,25 @@
+{
+  "gaps": [
+    {
+      "title": "Missing Inbound Event Listener for Response Monitoring",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When a lead responds to a message in a connected account, I want the system to automatically trigger AI evaluation in the background, so that we can maintain real-time automated conversational flow.",
+      "acceptanceCriteria": "Given a connected Telegram account with an active outreach dialog, When a new inbound message is received from a lead, Then a background event listener detects the message and triggers the AI evaluation engine to determine the next automated turn.",
+      "reason": "literal brief requirement: FEAT-AI-01 explicitly mandates a background worker that monitors connected accounts for incoming responses and triggers AI evaluation. Currently, the codebase only has an HTTP endpoint for simulating/manually receiving lead messages via REST API calls, lacking any real-time background listener."
+    },
+    {
+      "title": "Missing System Prompt Customization and Persisted Configuration",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When launching a campaign, I want to configure custom system prompt templates (FAQ, personas, goals, tone of voice), so that the AI dialog engine aligns its automated messages with the campaign's specific objectives.",
+      "acceptanceCriteria": "Given a newly created campaign, When the administrator updates the system prompt settings, Then the custom prompt defining AI persona, sales goals, FAQ, and qualification rules is saved and supplied to the AI generation engine during dialogue evaluation.",
+      "reason": "literal brief requirement: FEAT-AI-03 specifies a configurable prompt template defining AI persona, sales goal, tone of voice, product FAQs, and qualification rules. These customization models and corresponding API endpoints are completely absent from the database schema and application code."
+    },
+    {
+      "title": "Missing Background Session Health Monitor",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When running automated campaigns, I want the system to periodically monitor and track the health of each Telegram session, so that I can instantly detect spam blocks, bans, or re-authorization requirements before dispatching messages.",
+      "acceptanceCriteria": "Given active Telegram account sessions, When the system runs a periodic background check, Then it must verify session integrity and update the account status to 'Temporary Spam-Block', 'Permanent Ban', or 'Re-authorization Required' if any failure occurs.",
+      "reason": "literal brief requirement: FEAT-ACC-03 mandates 'Real-time tracking of account status: Active, Temporary Spam-Block, Permanent Ban, or Re-authorization Required'. Currently, there is no background service or worker designed to monitor session integrity or update the status to these states."
+    }
+  ]
+}
