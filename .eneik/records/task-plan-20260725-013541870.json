@@ -1,0 +1,76 @@
+{
+  "epics": [
+    {
+      "existingEpicId": "ddd91e1e-bcd1-4579-96a6-82f6afdfe950",
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: The Svelte frontend must provide a file upload form that sends multipart pre-authenticated .session or tdata files to /api/accounts/onboard/session."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Patch Svelte Onboarding UI with Session Upload Support",
+          "roleTag": "BARCAN-TAG-11",
+          "jtbd": "When implementing the Svelte session file upload for this epic, I want to send multipart form data directly to the existing backend endpoint, so that accounts can be added without OTP flow.",
+          "acceptanceCriteria": "Given an administrator using the Onboarding panel, When they submit a valid .session file, Then a multipart request is sent and success is shown.\nGiven an administrator using the Onboarding panel, When an invalid file format is uploaded, Then the UI displays a validation error and aborts.\nGiven an administrator using the Onboarding panel, When the upload endpoint returns a 500 error, Then a failure message is displayed.\nGiven an administrator using the Onboarding panel, When a very large .session file exceeding typical limits is uploaded, Then the UI gracefully handles the size timeout error.",
+          "leanValue": "essential",
+          "cynefinDomain": "clear",
+          "tocConstraintRef": "Frontend onboarding form component limits",
+          "sixSigmaMetric": "increase pre-authenticated onboarding flow completion rate via UI from 0% to 100%",
+          "hasUi": true,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "3585105d-fa47-4c11-8c67-d7c0425058f6",
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: The backend must implement a background scheduling engine to dispatch automated actions like channel subscriptions and presence toggling for IN_PROGRESS warm-up accounts."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement Background Warm-up Action Scheduler",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing the warm-up task dispatcher for this epic, I want to add a scheduled job executing actions in the background, so that account trust scores accumulate automatically.",
+          "acceptanceCriteria": "Given an account in IN_PROGRESS warm-up status, When the background job triggers, Then it successfully dispatches an automated action.\nGiven an account not in IN_PROGRESS status, When the background job runs, Then no automated actions are dispatched for it.\nGiven an account with invalid proxy credentials, When the job runs and fails to connect, Then it logs the failure without crashing the scheduler.\nGiven hundreds of accounts in IN_PROGRESS status, When the scheduler runs, Then it processes them in batches to prevent API rate limiting.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "WarmUpService backend task dispatcher concurrency",
+          "sixSigmaMetric": "reduce manual warm-up action requirement for IN_PROGRESS accounts from 100% to 0%",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "a79021eb-3135-4020-aeac-d3ae3d879746",
+      "sourceIndex": 2,
+      "requirements": [
+        "R1: The AI conversation service must scan incoming messages for stop keywords and track dialogue turns, switching status to ESCALATED when limits are reached."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Add Keyword and Turn Limit Stop-Triggers to Inbox Service",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing message stop-triggers for this epic, I want to intercept lead messages with stop intent and track turn limits, so that the AI stops replying and operators are alerted.",
+          "acceptanceCriteria": "Given an ACTIVE conversation, When a message with the stop keyword 'unsubscribe' is received, Then the conversation status is changed to ESCALATED and no AI reply is sent.\nGiven an ACTIVE conversation, When a message without any stop triggers is received, Then AI response generation proceeds normally.\nGiven a conversation already in ESCALATED status, When a new message with stop words is received, Then the status remains unchanged and no AI reply is triggered.\nGiven a conversation reaching exactly the maximum allowed 5 AI turns, When the lead sends the 6th message, Then the status becomes ESCALATED immediately before generating the next AI reply.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "InboxService AI message processor throughput",
+          "sixSigmaMetric": "reduce unwarranted AI responses to stop-intent messages from baseline to 0",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}
