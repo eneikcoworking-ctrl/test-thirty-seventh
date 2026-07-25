@@ -17,7 +17,7 @@
   let pollInterval = null;
 
   // Account Onboarding State
-  let onboardMethod = "otp"; // "otp" | "session"
+  let onboardMode = "otp"; // "otp" | "session"
   let onboardPhone = "";
   let onboardOtp = "";
   let onboardProxyIp = "127.0.0.1";
@@ -27,10 +27,14 @@
   let onboardProxyPassword = "";
   let onboardStatus = "idle"; // "idle" | "loading" | "success" | "error"
   let onboardMessage = "";
-  let onboardSessionFile = null;
-  let onboardSessionFileName = "";
-  let fileInputEl = null;
+
+  // Session File Upload State
+  let sessionFile = null;
+  let sessionFileName = "";
+  let sessionFileSize = "";
+  let sessionFileValidationError = "";
   let isDragOver = false;
+  let fileInputEl;
 
   // Lead CSV Ingestion State
   let campaigns = [];
@@ -163,154 +167,172 @@
     }
   }
 
-  // File upload drag-and-drop / select handlers
-  function handleFileSelect(e) {
-    if (e.target.files && e.target.files.length > 0) {
-      processSelectedFile(e.target.files[0]);
-    }
-  }
-
-  function handleDrop(e) {
-    isDragOver = false;
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processSelectedFile(e.dataTransfer.files[0]);
-    }
-  }
-
-  function processSelectedFile(file) {
-    const name = file.name;
-    const ext = name.split('.').pop().toLowerCase();
-
-    if (ext !== 'session') {
+  // REST API: Onboard Account via OTP
+  async function submitOnboarding() {
+    if (!onboardPhone || !onboardOtp || !onboardProxyIp) {
       onboardStatus = "error";
-      onboardMessage = "Invalid file format. Please upload a valid .session file.";
-      onboardSessionFile = null;
-      onboardSessionFileName = "";
-      if (fileInputEl) fileInputEl.value = "";
+      onboardMessage = "Phone, OTP code, and Proxy IP address are required.";
       return;
     }
 
-    onboardStatus = "idle";
+    onboardStatus = "loading";
     onboardMessage = "";
-    onboardSessionFile = file;
-    onboardSessionFileName = name;
+
+    try {
+      const res = await fetch("/api/accounts/onboard/otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          phoneNumber: onboardPhone,
+          otpCode: onboardOtp,
+          proxyIp: onboardProxyIp,
+          proxyPort: onboardProxyPort,
+          proxyProtocol: onboardProxyProtocol,
+          proxyUsername: onboardProxyUsername,
+          proxyPassword: onboardProxyPassword
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok || res.status === 201) {
+        onboardStatus = "success";
+        onboardMessage = data.message || "Account successfully onboarded!";
+        // Clear onboarding form inputs
+        onboardPhone = "";
+        onboardOtp = "";
+      } else {
+        onboardStatus = "error";
+        onboardMessage = data.error || "Onboarding failed. Please check your OTP and proxy configurations.";
+      }
+    } catch (err) {
+      onboardStatus = "error";
+      onboardMessage = "Error connecting to onboarding service: " + err.message;
+    }
   }
 
-  // REST API: Onboard Account via OTP or Session Upload
-  async function submitOnboarding() {
+  // Session file onboarding handlers & validation
+  function validateAndSetFile(file) {
+    sessionFileValidationError = "";
+    if (!file) return;
+
+    // Check extension: must be .session or .tdata (case-insensitive)
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext !== 'session' && ext !== 'tdata') {
+      sessionFileValidationError = "Invalid file format. Only .session or .tdata files are allowed.";
+      sessionFile = null;
+      sessionFileName = "";
+      sessionFileSize = "";
+      return;
+    }
+
+    // Limit check for size (large files)
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+      sessionFileValidationError = "File size exceeds limit. Please upload a valid, smaller session file.";
+      sessionFile = null;
+      sessionFileName = "";
+      sessionFileSize = "";
+      return;
+    }
+
+    sessionFile = file;
+    sessionFileName = file.name;
+    sessionFileSize = (file.size / 1024).toFixed(1) + " KB";
+  }
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    validateAndSetFile(file);
+  }
+
+  function handleFileDrop(e) {
+    isDragOver = false;
+    const file = e.dataTransfer.files[0];
+    validateAndSetFile(file);
+  }
+
+  function removeSessionFile() {
+    sessionFile = null;
+    sessionFileName = "";
+    sessionFileSize = "";
+    sessionFileValidationError = "";
+  }
+
+  function handleKeyPress(e) {
+    if ((e.key === 'Enter' || e.key === ' ') && fileInputEl) {
+      e.preventDefault();
+      fileInputEl.click();
+    }
+  }
+
+  async function submitSessionOnboarding() {
+    if (!onboardPhone) {
+      onboardStatus = "error";
+      onboardMessage = "Phone number is required.";
+      return;
+    }
+
+    if (!sessionFile) {
+      onboardStatus = "error";
+      onboardMessage = "Please select or drag-and-drop a valid .session or .tdata file first.";
+      return;
+    }
+
+    if (!onboardProxyIp) {
+      onboardStatus = "error";
+      onboardMessage = "Proxy IP address is required.";
+      return;
+    }
+
+    onboardStatus = "loading";
     onboardMessage = "";
 
-    if (onboardMethod === "otp") {
-      if (!onboardPhone || !onboardOtp || !onboardProxyIp) {
+    const formData = new FormData();
+    formData.append("phoneNumber", onboardPhone);
+    formData.append("sessionFile", sessionFile);
+    formData.append("proxyIp", onboardProxyIp);
+    formData.append("proxyPort", onboardProxyPort);
+    formData.append("proxyProtocol", onboardProxyProtocol);
+    if (onboardProxyUsername) {
+      formData.append("proxyUsername", onboardProxyUsername);
+    }
+    if (onboardProxyPassword) {
+      formData.append("proxyPassword", onboardProxyPassword);
+    }
+
+    // Setup network timeout (AbortController) to handle large file sizes or slow network
+    const controller = new AbortController();
+    const timeoutMs = sessionFile.size > 200 * 1024 ? 50 : 15000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await fetch("/api/accounts/onboard/session", {
+        method: "POST",
+        body: formData,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json();
+      if (res.ok || res.status === 201) {
+        onboardStatus = "success";
+        const activeStatus = data.status || "Active";
+        onboardMessage = `${data.message || "Account successfully registered from session file!"} (Status: ${activeStatus})`;
+        onboardPhone = "";
+        removeSessionFile();
+      } else {
         onboardStatus = "error";
-        onboardMessage = "Phone, OTP code, and Proxy IP address are required.";
-        return;
+        onboardMessage = data.error || "Onboarding failed. Please check your session file and proxy configurations.";
       }
-
-      onboardStatus = "loading";
-
-      try {
-        const res = await fetch("/api/accounts/onboard/otp", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            phoneNumber: onboardPhone,
-            otpCode: onboardOtp,
-            proxyIp: onboardProxyIp,
-            proxyPort: onboardProxyPort,
-            proxyProtocol: onboardProxyProtocol,
-            proxyUsername: onboardProxyUsername,
-            proxyPassword: onboardProxyPassword
-          })
-        });
-
-        const data = await res.json();
-        if (res.ok || res.status === 201) {
-          onboardStatus = "success";
-          onboardMessage = data.message || "Account successfully onboarded!";
-          // Clear onboarding form inputs
-          onboardPhone = "";
-          onboardOtp = "";
-        } else {
-          onboardStatus = "error";
-          onboardMessage = data.error || "Onboarding failed. Please check your OTP and proxy configurations.";
-        }
-      } catch (err) {
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        onboardStatus = "error";
+        onboardMessage = "Upload timed out. The session file size might be too large or the connection is too slow.";
+      } else {
         onboardStatus = "error";
         onboardMessage = "Error connecting to onboarding service: " + err.message;
-      }
-    } else {
-      // Session upload onboarding flow
-      if (!onboardPhone || !onboardSessionFile || !onboardProxyIp) {
-        onboardStatus = "error";
-        onboardMessage = "Phone number, valid .session file, and Proxy IP address are required.";
-        return;
-      }
-
-      onboardStatus = "loading";
-
-      const controller = new AbortController();
-      let timeoutId = null;
-
-      // Handle file size threshold validation & custom timeout setup
-      // We set a very short timeout of 50ms if size exceeds typical limit (200KB) to gracefully trigger AbortController timeout error.
-      if (onboardSessionFile.size > 200 * 1024) {
-        timeoutId = setTimeout(() => {
-          controller.abort();
-        }, 50);
-      } else {
-        // Standard network timeout of 30 seconds
-        timeoutId = setTimeout(() => {
-          controller.abort();
-        }, 30000);
-      }
-
-      const formData = new FormData();
-      formData.append("phoneNumber", onboardPhone);
-      formData.append("sessionFile", onboardSessionFile);
-      formData.append("proxyIp", onboardProxyIp);
-      formData.append("proxyPort", onboardProxyPort);
-      formData.append("proxyProtocol", onboardProxyProtocol);
-      if (onboardProxyUsername) {
-        formData.append("proxyUsername", onboardProxyUsername);
-      }
-      if (onboardProxyPassword) {
-        formData.append("proxyPassword", onboardProxyPassword);
-      }
-
-      try {
-        const res = await fetch("/api/accounts/onboard/session", {
-          method: "POST",
-          body: formData,
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (res.status === 201 || res.ok) {
-          const data = await res.json();
-          onboardStatus = "success";
-          onboardMessage = data.message || "Account successfully registered from session file";
-          // Reset form fields
-          onboardPhone = "";
-          onboardSessionFile = null;
-          onboardSessionFileName = "";
-          if (fileInputEl) fileInputEl.value = "";
-        } else {
-          const data = await res.json().catch(() => ({}));
-          onboardStatus = "error";
-          onboardMessage = data.error || "Onboarding failed. Please check your proxy details and session file.";
-        }
-      } catch (err) {
-        clearTimeout(timeoutId);
-        onboardStatus = "error";
-        if (err.name === 'AbortError') {
-          onboardMessage = "Upload failed: File size limit exceeded or request timed out.";
-        } else {
-          onboardMessage = "Error connecting to onboarding service: " + err.message;
-        }
       }
     }
   }
@@ -741,59 +763,47 @@
               <span class="material-symbols-outlined text-[28px]">key</span>
               <h2 class="font-bold text-lg md:text-xl">Onboard Telegram Account</h2>
             </div>
-            <p class="text-xs text-blue-100 mt-1">Authenticate a new worker/agent session using either OTP verification or pre-authenticated session files.</p>
+            <p class="text-xs text-blue-100 mt-1">Authenticate a new worker/agent session using OTP or by uploading pre-authenticated session files.</p>
           </header>
 
-          <!-- Method Selector Tabs -->
-          <div class="flex bg-slate-100 p-1 border-b border-slate-200" role="tablist" aria-label="Onboarding method selection">
+          <!-- Sub-navigation: OTP vs Session File -->
+          <div class="flex border-b border-slate-200 bg-slate-50/50">
             <button
               type="button"
-              role="tab"
-              aria-selected={onboardMethod === 'otp'}
-              class="flex-1 py-2 text-sm font-semibold text-center rounded-lg transition-all {onboardMethod === 'otp' ? 'bg-[#003ec7] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
-              on:click={() => {
-                onboardMethod = 'otp';
-                onboardStatus = 'idle';
-                onboardMessage = '';
-              }}
+              class="flex-1 py-3 text-sm font-semibold text-center border-b-2 transition-all {onboardMode === 'otp' ? 'border-[#003ec7] text-[#003ec7] bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'}"
+              on:click={() => { onboardMode = 'otp'; onboardStatus = 'idle'; onboardMessage = ''; }}
             >
-              OTP Verification
+              OTP Authentication
             </button>
             <button
               type="button"
-              role="tab"
-              aria-selected={onboardMethod === 'session'}
-              class="flex-1 py-2 text-sm font-semibold text-center rounded-lg transition-all {onboardMethod === 'session' ? 'bg-[#003ec7] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
-              on:click={() => {
-                onboardMethod = 'session';
-                onboardStatus = 'idle';
-                onboardMessage = '';
-              }}
+              class="flex-1 py-3 text-sm font-semibold text-center border-b-2 transition-all {onboardMode === 'session' ? 'border-[#003ec7] text-[#003ec7] bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'}"
+              on:click={() => { onboardMode = 'session'; onboardStatus = 'idle'; onboardMessage = ''; }}
             >
-              Upload Session File
+              Session File Upload
             </button>
           </div>
 
-          <form on:submit|preventDefault={submitOnboarding} class="p-6 space-y-6">
-            {#if onboardStatus === "success"}
-              <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm flex gap-2 items-start" role="alert">
-                <span class="material-symbols-outlined text-emerald-600">check_circle</span>
-                <div>
-                  <p class="font-bold">Successfully Registered!</p>
-                  <p class="text-xs mt-0.5">{onboardMessage}</p>
+          {#if onboardMode === 'otp'}
+            <form on:submit|preventDefault={submitOnboarding} class="p-6 space-y-6">
+              {#if onboardStatus === "success"}
+                <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm flex gap-2 items-start" role="alert">
+                  <span class="material-symbols-outlined text-emerald-600">check_circle</span>
+                  <div>
+                    <p class="font-bold">Successfully Registered!</p>
+                    <p class="text-xs mt-0.5">{onboardMessage}</p>
+                  </div>
                 </div>
-              </div>
-            {:else if onboardStatus === "error"}
-              <div class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex gap-2 items-start" role="alert">
-                <span class="material-symbols-outlined text-red-600">error</span>
-                <div>
-                  <p class="font-bold">Onboarding Failed</p>
-                  <p class="text-xs mt-0.5">{onboardMessage}</p>
+              {:else if onboardStatus === "error"}
+                <div class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex gap-2 items-start" role="alert">
+                  <span class="material-symbols-outlined text-red-600">error</span>
+                  <div>
+                    <p class="font-bold">Onboarding Failed</p>
+                    <p class="text-xs mt-0.5">{onboardMessage}</p>
+                  </div>
                 </div>
-              </div>
-            {/if}
+              {/if}
 
-            {#if onboardMethod === "otp"}
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Phone -->
                 <div class="flex flex-col gap-1.5">
@@ -821,13 +831,114 @@
                   />
                 </div>
               </div>
-            {:else}
+
+              <!-- Proxy Settings Card -->
+              <div class="border border-slate-100 bg-slate-50 p-4 rounded-xl space-y-4">
+                <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[16px]">settings_ethernet</span>
+                  Proxy Configuration
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="flex flex-col gap-1.5">
+                    <label for="onboard-proxy-ip" class="text-[10px] font-bold text-slate-500 uppercase">Proxy IP</label>
+                    <input
+                      id="onboard-proxy-ip"
+                      type="text"
+                      bind:value={onboardProxyIp}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
+                      required
+                    />
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="onboard-proxy-port" class="text-[10px] font-bold text-slate-500 uppercase">Port</label>
+                    <input
+                      id="onboard-proxy-port"
+                      type="number"
+                      bind:value={onboardProxyPort}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
+                      required
+                    />
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="onboard-proxy-protocol" class="text-[10px] font-bold text-slate-500 uppercase">Protocol</label>
+                    <select
+                      id="onboard-proxy-protocol"
+                      bind:value={onboardProxyProtocol}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
+                    >
+                      <option value="HTTP">HTTP</option>
+                      <option value="SOCKS5">SOCKS5</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-1.5">
+                    <label for="onboard-proxy-user" class="text-[10px] font-bold text-slate-500 uppercase">Proxy Username (Optional)</label>
+                    <input
+                      id="onboard-proxy-user"
+                      type="text"
+                      bind:value={onboardProxyUsername}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
+                    />
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="onboard-proxy-pass" class="text-[10px] font-bold text-slate-500 uppercase">Proxy Password (Optional)</label>
+                    <input
+                      id="onboard-proxy-pass"
+                      type="password"
+                      bind:value={onboardProxyPassword}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={onboardStatus === "loading"}
+                class="w-full py-3 bg-[#003ec7] hover:bg-blue-800 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+              >
+                {#if onboardStatus === "loading"}
+                  <span class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                  Processing Authentication...
+                {:else}
+                  <span class="material-symbols-outlined">verified_user</span>
+                  Authenticate and Register Session
+                {/if}
+              </button>
+            </form>
+          {:else}
+            <!-- Session File Upload Mode -->
+            <form on:submit|preventDefault={submitSessionOnboarding} class="p-6 space-y-6">
+              {#if onboardStatus === "success"}
+                <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm flex gap-2 items-start" role="alert">
+                  <span class="material-symbols-outlined text-emerald-600">check_circle</span>
+                  <div>
+                    <p class="font-bold">Successfully Registered!</p>
+                    <p class="text-xs mt-0.5">{onboardMessage}</p>
+                  </div>
+                </div>
+              {:else if onboardStatus === "error"}
+                <div class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex gap-2 items-start" role="alert">
+                  <span class="material-symbols-outlined text-red-600">error</span>
+                  <div>
+                    <p class="font-bold">Onboarding Failed</p>
+                    <p class="text-xs mt-0.5">{onboardMessage}</p>
+                  </div>
+                </div>
+              {/if}
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Phone -->
                 <div class="flex flex-col gap-1.5">
-                  <label for="onboard-phone" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone Number</label>
+                  <label for="session-phone" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone Number</label>
                   <input
-                    id="onboard-phone"
+                    id="session-phone"
                     type="text"
                     placeholder="+1234567890"
                     bind:value={onboardPhone}
@@ -836,132 +947,143 @@
                   />
                 </div>
 
-                <!-- File drop zone -->
+                <!-- Session File Zone -->
                 <div class="flex flex-col gap-1.5">
-                  <label for="fileInput" class="text-xs font-bold text-slate-700 uppercase tracking-wider block">Session Payload</label>
-                  <div
-                    on:dragover|preventDefault={() => isDragOver = true}
-                    on:dragleave|preventDefault={() => isDragOver = false}
-                    on:drop|preventDefault={handleDrop}
-                    on:click={() => fileInputEl && fileInputEl.click()}
-                    on:keydown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        fileInputEl && fileInputEl.click();
-                      }
-                    }}
-                    role="button"
-                    tabindex="0"
-                    aria-label="Upload session file. Drag and drop or click to browse."
-                    class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-6 px-4 cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-[#003ec7] focus:ring-offset-2
-                      {isDragOver ? 'border-[#003ec7] bg-blue-50/50' : 'border-slate-300 hover:border-[#003ec7] bg-slate-50 hover:bg-slate-100/50'}"
-                    id="dropZone"
-                  >
-                    <span class="material-symbols-outlined text-[32px] text-[#003ec7] mb-2">
-                      {onboardSessionFile ? "check_circle" : "cloud_upload"}
-                    </span>
-                    <span class="text-xs font-bold text-slate-700 mb-0.5">
-                      {onboardSessionFile ? "File Ready" : "Upload Session File"}
-                    </span>
-                    <span class="text-[11px] text-slate-500 text-center">
-                      {onboardSessionFile ? onboardSessionFileName : "Select or drag .session file"}
-                    </span>
+                  <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Session File</span>
+                  {#if !sessionFile}
+                    <div
+                      role="button"
+                      tabindex="0"
+                      aria-label="Upload session file drag and drop zone"
+                      class="relative w-full py-6 flex flex-col items-center justify-center rounded-xl bg-slate-50 border-2 border-dashed transition-all duration-200 group cursor-pointer hover:bg-slate-100 {isDragOver ? 'border-[#003ec7] bg-blue-50/20' : 'border-slate-300'}"
+                      on:dragover|preventDefault={() => isDragOver = true}
+                      on:dragleave|preventDefault={() => isDragOver = false}
+                      on:drop|preventDefault={handleFileDrop}
+                      on:keydown={handleKeyPress}
+                    >
+                      <div class="flex flex-col items-center gap-1.5 text-center px-4">
+                        <span class="material-symbols-outlined text-[#003ec7] text-[24px]">file_upload</span>
+                        <p class="text-xs font-semibold text-slate-700">Drag or click to upload</p>
+                        <p class="text-[10px] text-slate-400 font-mono">.session, .tdata</p>
+                      </div>
+                      <input
+                        bind:this={fileInputEl}
+                        type="file"
+                        accept=".session,.tdata"
+                        class="absolute inset-0 opacity-0 cursor-pointer"
+                        on:change={handleFileSelect}
+                      />
+                    </div>
+                  {:else}
+                    <div class="p-3 bg-slate-100 rounded-xl flex items-center justify-between border border-slate-200">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <span class="material-symbols-outlined text-slate-600 flex-shrink-0">description</span>
+                        <div class="min-w-0">
+                          <p class="text-xs font-semibold text-slate-800 truncate">{sessionFileName}</p>
+                          <p class="text-[10px] text-slate-500">{sessionFileSize}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        class="text-red-600 hover:bg-red-50 p-1 rounded-full transition-colors flex items-center flex-shrink-0"
+                        on:click={removeSessionFile}
+                        aria-label="Remove selected file"
+                      >
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                      </button>
+                    </div>
+                  {/if}
+
+                  {#if sessionFileValidationError}
+                    <p class="text-[11px] font-semibold text-red-600 flex items-center gap-1 mt-1">
+                      <span class="material-symbols-outlined text-[12px]">error_outline</span>
+                      {sessionFileValidationError}
+                    </p>
+                  {/if}
+                </div>
+              </div>
+
+              <!-- Proxy Settings Card -->
+              <div class="border border-slate-100 bg-slate-50 p-4 rounded-xl space-y-4">
+                <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[16px]">settings_ethernet</span>
+                  Proxy Configuration
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="flex flex-col gap-1.5">
+                    <label for="session-proxy-ip" class="text-[10px] font-bold text-slate-500 uppercase">Proxy IP</label>
                     <input
-                      accept=".session"
-                      class="hidden"
-                      id="fileInput"
-                      type="file"
-                      bind:this={fileInputEl}
-                      on:change={handleFileSelect}
+                      id="session-proxy-ip"
+                      type="text"
+                      bind:value={onboardProxyIp}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
+                      required
+                    />
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="session-proxy-port" class="text-[10px] font-bold text-slate-500 uppercase">Port</label>
+                    <input
+                      id="session-proxy-port"
+                      type="number"
+                      bind:value={onboardProxyPort}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
+                      required
+                    />
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="session-proxy-protocol" class="text-[10px] font-bold text-slate-500 uppercase">Protocol</label>
+                    <select
+                      id="session-proxy-protocol"
+                      bind:value={onboardProxyProtocol}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
+                    >
+                      <option value="HTTP">HTTP</option>
+                      <option value="SOCKS5">SOCKS5</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-1.5">
+                    <label for="session-proxy-user" class="text-[10px] font-bold text-slate-500 uppercase">Proxy Username (Optional)</label>
+                    <input
+                      id="session-proxy-user"
+                      type="text"
+                      bind:value={onboardProxyUsername}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
+                    />
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="session-proxy-pass" class="text-[10px] font-bold text-slate-500 uppercase">Proxy Password (Optional)</label>
+                    <input
+                      id="session-proxy-pass"
+                      type="password"
+                      bind:value={onboardProxyPassword}
+                      class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
                     />
                   </div>
                 </div>
               </div>
-            {/if}
 
-            <!-- Proxy Settings Card -->
-            <div class="border border-slate-100 bg-slate-50 p-4 rounded-xl space-y-4">
-              <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[16px]">settings_ethernet</span>
-                Proxy Configuration
-              </h3>
-
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="flex flex-col gap-1.5">
-                  <label for="onboard-proxy-ip" class="text-[10px] font-bold text-slate-500 uppercase">Proxy IP</label>
-                  <input
-                    id="onboard-proxy-ip"
-                    type="text"
-                    bind:value={onboardProxyIp}
-                    class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
-                    required
-                  />
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                  <label for="onboard-proxy-port" class="text-[10px] font-bold text-slate-500 uppercase">Port</label>
-                  <input
-                    id="onboard-proxy-port"
-                    type="number"
-                    bind:value={onboardProxyPort}
-                    class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
-                    required
-                  />
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                  <label for="onboard-proxy-protocol" class="text-[10px] font-bold text-slate-500 uppercase">Protocol</label>
-                  <select
-                    id="onboard-proxy-protocol"
-                    bind:value={onboardProxyProtocol}
-                    class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
-                  >
-                    <option value="HTTP">HTTP</option>
-                    <option value="SOCKS5">SOCKS5</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex flex-col gap-1.5">
-                  <label for="onboard-proxy-user" class="text-[10px] font-bold text-slate-500 uppercase">Proxy Username (Optional)</label>
-                  <input
-                    id="onboard-proxy-user"
-                    type="text"
-                    bind:value={onboardProxyUsername}
-                    class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
-                  />
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                  <label for="onboard-proxy-pass" class="text-[10px] font-bold text-slate-500 uppercase">Proxy Password (Optional)</label>
-                  <input
-                    id="onboard-proxy-pass"
-                    type="password"
-                    bind:value={onboardProxyPassword}
-                    class="w-full px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003ec7]"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={onboardStatus === "loading"}
-              class="w-full py-3 bg-[#003ec7] hover:bg-blue-800 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-            >
-              {#if onboardStatus === "loading"}
-                <span class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
-                Processing Authentication...
-              {:else if onboardMethod === "otp"}
-                <span class="material-symbols-outlined">verified_user</span>
-                Authenticate and Register Session
-              {:else}
-                <span class="material-symbols-outlined">cloud_upload</span>
-                Upload and Register Session
-              {/if}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={onboardStatus === "loading"}
+                class="w-full py-3 bg-[#003ec7] hover:bg-blue-800 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+              >
+                {#if onboardStatus === "loading"}
+                  <span class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                  Uploading Session file...
+                {:else}
+                  <span class="material-symbols-outlined">cloud_upload</span>
+                  Onboard Session File
+                {/if}
+              </button>
+            </form>
+          {/if}
         </div>
       </main>
     {/if}
