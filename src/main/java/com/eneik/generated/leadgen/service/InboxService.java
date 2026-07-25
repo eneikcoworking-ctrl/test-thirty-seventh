@@ -85,7 +85,7 @@ public class InboxService {
         message.setSentAt(now);
         message.setSenderName("Human Agent");
         ConversationMessage savedMessage = conversationMessageRepository.save(message);
-        evictConversationMessagesCache(conversationId);
+        evictConversationCaches(conversationId);
 
         // 3. Update the conversation state (mark as ESCALATED/ACTIVE, update last turn timestamp)
         // Manual message automatically marks active/handled status
@@ -153,16 +153,20 @@ public class InboxService {
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
 
-        evictConversationMessagesCache(conversationId);
+        evictConversationCaches(conversationId);
 
         return savedLeadMessage;
     }
 
-    private void evictConversationMessagesCache(String conversationId) {
+    private void evictConversationCaches(String conversationId) {
         if (cacheManager != null) {
-            org.springframework.cache.Cache cache = cacheManager.getCache(CacheConstants.CACHE_MESSAGES);
-            if (cache != null) {
-                cache.evict(conversationId);
+            org.springframework.cache.Cache msgCache = cacheManager.getCache(CacheConstants.CACHE_MESSAGES);
+            if (msgCache != null) {
+                msgCache.evict(conversationId);
+            }
+            org.springframework.cache.Cache convCache = cacheManager.getCache(CacheConstants.CACHE_CONVERSATIONS);
+            if (convCache != null) {
+                convCache.clear();
             }
         }
     }

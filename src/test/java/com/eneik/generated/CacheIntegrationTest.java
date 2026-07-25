@@ -119,11 +119,11 @@ public class CacheIntegrationTest {
         assertNotNull(msgCache);
         assertNotNull(msgCache.get(convId));
 
-        // Trigger eviction by sending manual message (evicts messages cache dynamically but preserves conversations list cache to allow TTL expiration)
+        // Trigger eviction by sending manual message (actively evicts both message and conversations list caches for maximum system consistency)
         inboxService.sendManualMessage(convId, "Rep manual response");
 
         // Check evicted
         assertNull(msgCache.get(convId));
-        assertNotNull(convCache.get(convKey)); // conversations list caching remains active until TTL expiration
+        assertNull(convCache.get(convKey));
     }
 }

@@ -35,11 +35,30 @@ public class CacheConfig {
         // Create specialized ObjectMapper for polymorphic JSON caching
         ObjectMapper objectMapper = new ObjectMapper();
 
-        // Setup polymorphic default typing for polymorphic deserialization
+        // Build secure PolymorphicTypeValidator allowing only safe whitelisted package prefixes
+        com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator ptv =
+            com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator.builder()
+                .allowIfBaseType("com.eneik.generated")
+                .allowIfSubType("com.eneik.generated")
+                .allowIfBaseType("org.springframework.data")
+                .allowIfSubType("org.springframework.data")
+                .allowIfBaseType("java.util")
+                .allowIfSubType("java.util")
+                .build();
+
+        // Setup secure polymorphic default typing for polymorphic deserialization
         objectMapper.activateDefaultTyping(
-            LaissezFaireSubTypeValidator.instance,
+            ptv,
             ObjectMapper.DefaultTyping.NON_FINAL,
             JsonTypeInfo.As.PROPERTY
+        );
+
+        // Register class subtypes / aliases to completely decouple JSON structures from Java package paths
+        objectMapper.registerSubtypes(
+            new com.fasterxml.jackson.databind.jsontype.NamedType(com.eneik.generated.leadgen.model.Conversation.class, "Conversation"),
+            new com.fasterxml.jackson.databind.jsontype.NamedType(com.eneik.generated.leadgen.model.ConversationMessage.class, "ConversationMessage"),
+            new com.fasterxml.jackson.databind.jsontype.NamedType(com.eneik.generated.domain.Campaign.class, "Campaign"),
+            new com.fasterxml.jackson.databind.jsontype.NamedType(org.springframework.data.domain.PageImpl.class, "PageImpl")
         );
 
         // Register custom Page serializer/deserializer to handle Spring Data PageImpl safely
