@@ -1,5 +1,6 @@
 <script>
   import { tick, onMount, onDestroy } from 'svelte';
+  import StatusBadge from './StatusBadge.svelte';
 
   // Core App Views
   let currentTab = "inbox"; // "inbox" | "onboard" | "ingest"
@@ -51,60 +52,6 @@
   let csvContent = "";
   let ingestStatus = "idle"; // "idle" | "loading" | "success" | "error"
   let ingestMessage = "";
-
-  // Centralized Status Configuration
-  const statusConfigs = {
-    ACTIVE: {
-      label: 'AI Active',
-      classes: 'bg-green-100 text-green-800 border border-green-300',
-      icon: 'auto_awesome'
-    },
-    ESCALATED: {
-      label: 'Human Intervention Required',
-      classes: 'bg-yellow-100 text-yellow-800 border border-yellow-300',
-      icon: 'warning'
-    },
-    PAUSED: {
-      label: 'Paused AI',
-      classes: 'bg-blue-50 text-blue-600 border border-blue-200',
-      icon: ''
-    },
-    RESOLVED: {
-      label: 'Closed/Converted',
-      classes: 'bg-blue-100 text-blue-800 border border-blue-300',
-      icon: ''
-    },
-    CLOSED: {
-      label: 'Closed/Converted',
-      classes: 'bg-blue-100 text-blue-800 border border-blue-300',
-      icon: ''
-    },
-    CONVERTED: {
-      label: 'Closed/Converted',
-      classes: 'bg-blue-100 text-blue-800 border border-blue-300',
-      icon: ''
-    },
-    SPAM: {
-      label: 'Spam/Blocked',
-      classes: 'bg-red-100 text-red-800 border border-red-300',
-      icon: ''
-    },
-    BLOCKED: {
-      label: 'Spam/Blocked',
-      classes: 'bg-red-100 text-red-800 border border-red-300',
-      icon: ''
-    }
-  };
-
-  function getStatusConfig(status) {
-    if (!status) return { label: 'Unknown', classes: 'bg-slate-100 text-slate-800 border border-slate-300', icon: '' };
-    const key = status.toUpperCase();
-    return statusConfigs[key] || {
-      label: status,
-      classes: 'bg-slate-100 text-slate-800 border border-slate-300',
-      icon: ''
-    };
-  }
 
   // Reactivity Calculations
   $: activeChat = chats.find(c => c.id === selectedChatId);
@@ -816,12 +763,7 @@
 
                     <div class="flex items-center gap-2 mb-1.5 flex-wrap">
                       <span class="text-xs font-medium text-slate-500">@{chat.leadUsername || "no_username"}</span>
-                      <span class="{getStatusConfig(chat.status).classes} font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
-                        {#if getStatusConfig(chat.status).icon}
-                          <span class="material-symbols-outlined text-[10px]">{getStatusConfig(chat.status).icon}</span>
-                        {/if}
-                        {getStatusConfig(chat.status).label}
-                      </span>
+                      <StatusBadge status={chat.status} />
                     </div>
                   </div>
                 </button>
@@ -850,12 +792,7 @@
                 <div>
                   <div class="flex items-center gap-2 flex-wrap">
                     <h2 class="font-bold text-sm text-slate-900">{activeChat.leadName || activeChat.leadUsername || "Lead"}</h2>
-                    <span class="{getStatusConfig(activeChat.status).classes} px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5 {activeChat.status === 'ESCALATED' ? 'animate-pulse' : ''}">
-                      {#if getStatusConfig(activeChat.status).icon}
-                        <span class="material-symbols-outlined text-[11px]">{getStatusConfig(activeChat.status).icon}</span>
-                      {/if}
-                      {getStatusConfig(activeChat.status).label}
-                    </span>
+                    <StatusBadge status={activeChat.status} size="md" />
                   </div>
                   <p class="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-md">@{activeChat.leadUsername || "no_username"} • {activeChat.leadPhone || "No Phone"}</p>
                 </div>
