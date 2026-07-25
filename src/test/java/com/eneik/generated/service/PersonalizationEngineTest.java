@@ -147,6 +147,44 @@ public class PersonalizationEngineTest {
     }
 
     @Test
+    public void testPersonalizationEngineWithCustomSystemPrompts() {
+        String campaignId = UUID.randomUUID().toString();
+        Campaign campaign = new Campaign(
+                campaignId,
+                "AI Software Campaign",
+                "Spintax template",
+                "System prompt context",
+                "Persona agent",
+                "Target sales goals",
+                "Formal tone",
+                "Q: FAQ? A: FAQ answer",
+                "Must qualify"
+        );
+
+        String leadId = UUID.randomUUID().toString();
+        Lead lead = new Lead(leadId, campaignId, "john", "+456", "NEW", "Lead metadata");
+
+        // Set rephraser to return the metadata / context supplied to it so we can verify what was supplied
+        llmPersonalizationService.setRephraser((temp, meta) -> meta);
+
+        String result = personalizationEngine.generatePersonalizedMessage(campaign, lead);
+
+        assertThat(result).isNotNull();
+        // Assert that the custom system prompts (persona, goals, tone, FAQs, qualification rules, system prompt)
+        // are correctly supplied to the generation engine context.
+        assertThat(result).contains("Lead metadata");
+        assertThat(result).contains("System Prompt: System prompt context");
+        assertThat(result).contains("Persona: Persona agent");
+        assertThat(result).contains("Goals: Target sales goals");
+        assertThat(result).contains("Tone: Formal tone");
+        assertThat(result).contains("FAQs: Q: FAQ? A: FAQ answer");
+        assertThat(result).contains("Rules: Must qualify");
+
+        // Reset rephraser
+        llmPersonalizationService.setRephraser(null);
+    }
+
+    @Test
     public void testDialogMessageLimitBlocker() {
         String chatId = "dialog_limit_test_chat";
 

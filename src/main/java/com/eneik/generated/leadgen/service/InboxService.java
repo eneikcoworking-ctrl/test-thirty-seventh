@@ -2,11 +2,16 @@ package com.eneik.generated.leadgen.service;
 
 import com.eneik.generated.leadgen.model.Conversation;
 import com.eneik.generated.leadgen.model.ConversationMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +54,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "messages", key = "#conversationId", condition = "#beforeMessageId == null")
     public List<ConversationMessage> getMessages(String conversationId, int limit, String beforeMessageId) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "sentAt"));
         if (beforeMessageId != null && !beforeMessageId.trim().isEmpty()) {
@@ -59,6 +65,7 @@ public class InboxService {
     }
 
     @Transactional
+    @CacheEvict(value = "messages", key = "#conversationId")
     public ConversationMessage sendManualMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -94,6 +101,7 @@ public class InboxService {
      * the lead reply is saved but the AI ignores it (no automated AI response is added).
      */
     @Transactional
+    @CacheEvict(value = "messages", key = "#conversationId")
     public ConversationMessage receiveLeadMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -146,4 +154,5 @@ public class InboxService {
 
         return savedLeadMessage;
     }
+
 }

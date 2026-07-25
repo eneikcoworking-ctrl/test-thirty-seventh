@@ -75,7 +75,12 @@ paths:
   /api/v1/conversations/{conversationId}/messages:
     get:
       summary: Retrieve messages for a conversation
-      description: Returns conversation history with full context of dialogue turns.
+      description: |
+        Returns conversation history with full context of dialogue turns.
+        Caching Policy:
+          - Requests without 'beforeMessageId' are cached in Redis with a 10-minute TTL to optimize high-frequency initial page load performance.
+          - Requests with 'beforeMessageId' bypass the cache to guarantee real-time data consistency for paginated historical queries.
+          - Failover: If Redis is offline or experiences connection timeouts, the system gracefully falls back to local in-memory caching and real-time database retrieval, suppressing all connection exceptions.
       parameters:
         - name: conversationId
           in: path
