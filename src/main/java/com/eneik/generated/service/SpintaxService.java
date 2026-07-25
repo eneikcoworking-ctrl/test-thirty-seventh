@@ -6,7 +6,11 @@ import java.util.Random;
 @Service
 public class SpintaxService {
 
-    private final Random random = new Random();
+    private Random random = new Random();
+
+    public void setRandom(Random random) {
+        this.random = random;
+    }
 
     /**
      * Replaces all occurrences of {choice1|choice2|...} with a randomly selected choice.
