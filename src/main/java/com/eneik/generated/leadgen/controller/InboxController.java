@@ -53,7 +53,9 @@ public class InboxController {
                     convPage.getSize()
             );
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok()
+                    .header("Cache-Control", "max-age=10")
+                    .body(response);
         } catch (Exception e) {
             ErrorResponseDto error = new ErrorResponseDto("INTERNAL_ERROR", e.getMessage(), OffsetDateTime.now());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
@@ -77,6 +79,11 @@ public class InboxController {
                             m.getSenderName()
                     ))
                     .collect(Collectors.toList());
+            if (beforeMessageId == null && limit == 50) {
+                return ResponseEntity.ok()
+                        .header("Cache-Control", "max-age=300")
+                        .body(dtos);
+            }
             return ResponseEntity.ok(dtos);
         } catch (Exception e) {
             ErrorResponseDto error = new ErrorResponseDto("INTERNAL_ERROR", e.getMessage(), OffsetDateTime.now());

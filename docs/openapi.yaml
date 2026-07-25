@@ -49,6 +49,11 @@ paths:
       responses:
         '200':
           description: A paginated list of conversations
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: Caching directive to optimize performance (e.g. max-age=10)
           content:
             application/json:
               schema:
@@ -101,6 +106,11 @@ paths:
       responses:
         '200':
           description: List of messages inside the specified conversation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: Caching directive to optimize performance (e.g. max-age=300)
           content:
             application/json:
               schema:
@@ -163,6 +173,27 @@ paths:
           description: Internal Server Error
 
   /api/v1/campaigns:
+    get:
+      summary: Retrieve all campaigns
+      description: Returns a list of all active outreach campaigns.
+      responses:
+        '200':
+          description: List of all campaigns
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: Caching directive to optimize performance (e.g. max-age=3600)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Campaign'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
     post:
       summary: Create a campaign
       description: Creates a new cold outreach campaign with associated spintax rules.
