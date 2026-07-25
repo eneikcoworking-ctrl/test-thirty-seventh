@@ -371,4 +371,134 @@ public class InboxControllerTest {
         long aiTurnsAfter = conversationMessageRepository.countByConversationIdAndSenderType(convId, "AI_AGENT");
         assertEquals(5, aiTurnsAfter);
     }
+
+    @Autowired
+    private org.springframework.cache.CacheManager cacheManager;
+
+    @Test
+    public void testConversationsQueryIsCachedAndEvicted() throws Exception {
+        // Clear all caches first to start clean
+        cacheManager.getCache("conversations").clear();
+        cacheManager.getCache("messages").clear();
+
+        OffsetDateTime now = OffsetDateTime.now();
+        Conversation c1 = new Conversation(
+                UUID.randomUUID().toString(),
+                123456L,
+                "Test Caching Lead",
+                "test_cache",
+                "+123456",
+                "ACTIVE",
+                null,
+                now,
+                now
+        );
+        conversationRepository.save(c1);
+
+        // 1. Initial request (GET /api/v1/conversations) -> Cache Miss
+        mockMvc.perform(get("/api/v1/conversations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].leadName", is("Test Caching Lead")));
+
+        // Verify that the conversation cache now contains an entry!
+        org.springframework.cache.Cache cache = cacheManager.getCache("conversations");
+        org.junit.jupiter.api.Assertions.assertNotNull(cache);
+
+        // Let's delete the conversation from the database directly
+        conversationRepository.delete(c1);
+
+        // 2. Second request -> Cache Hit (data is returned from cache even though it's deleted from database!)
+        mockMvc.perform(get("/api/v1/conversations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].leadName", is("Test Caching Lead")));
+
+        // Save conversation back so we can perform eviction test
+        conversationRepository.save(c1);
+
+        // 3. Mutate data: Send a manual message -> should trigger Cache Eviction
+        SendMessageRequestDto request = new SendMessageRequestDto("Evict the cache!");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", c1.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // Delete conversation again to verify eviction occurred (subsequent fetch must hit DB and return empty/stale error)
+        conversationRepository.delete(c1);
+
+        // 4. Subsequent request -> Cache Miss (fails to find in database and returns empty because cache was evicted!)
+        mockMvc.perform(get("/api/v1/conversations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(0)));
+    }
+
+    @Test
+    public void testMessagesQueryIsCachedAndEvicted() throws Exception {
+        cacheManager.getCache("conversations").clear();
+        cacheManager.getCache("messages").clear();
+
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                1234567L,
+                "Msg Caching Lead",
+                "msg_cache",
+                "+1234567",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        ConversationMessage msg = new ConversationMessage(
+                UUID.randomUUID().toString(),
+                convId,
+                "Cached message content",
+                "LEAD",
+                OffsetDateTime.now(),
+                "Msg Caching Lead"
+        );
+        conversationMessageRepository.save(msg);
+
+        // 1. Initial request (GET /api/v1/conversations/{id}/messages) -> Cache Miss
+        mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].text", is("Cached message content")));
+
+        // Verify that the messages cache now contains an entry!
+        org.springframework.cache.Cache cache = cacheManager.getCache("messages");
+        org.junit.jupiter.api.Assertions.assertNotNull(cache);
+
+        // Delete from DB directly
+        conversationMessageRepository.delete(msg);
+
+        // 2. Second request -> Cache Hit (still returns message)
+        mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].text", is("Cached message content")));
+
+        // Restore msg
+        conversationMessageRepository.save(msg);
+
+        // 3. Mutate data: Send a manual message -> triggers Cache Eviction
+        SendMessageRequestDto request = new SendMessageRequestDto("Evict message cache!");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", convId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // Delete msg from DB
+        conversationMessageRepository.delete(msg);
+        // Also delete the newly saved manual message to verify
+        conversationMessageRepository.deleteAll();
+
+        // 4. Subsequent request -> Cache Miss (returns empty)
+        mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
 }
