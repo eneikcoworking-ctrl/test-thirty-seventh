@@ -1,0 +1,3 @@
+{"verdicts": [
+  {"sourceIndex": 0, "verdict": "approve", "criticalReason": "", "concerns": ["The same regex pattern for checking whitespace is duplicated multiple times across CampaignCreateRequest and CampaignSystemPromptRequest; extracting it as a private static final Pattern constant would improve reuse and maintainability."]}
+]}
