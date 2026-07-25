@@ -500,8 +500,16 @@
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const response = await originalFetch(...args);
-      if (response.status === 401 && !args[0].includes('/api/v1/auth/login')) {
-        isLoggedIn = false;
+      if (response.status === 401) {
+        let url = "";
+        if (typeof args[0] === 'string') {
+          url = args[0];
+        } else if (args[0] && typeof args[0] === 'object' && args[0].url) {
+          url = args[0].url;
+        }
+        if (!url.includes('/api/v1/auth/login')) {
+          isLoggedIn = false;
+        }
       }
       return response;
     };

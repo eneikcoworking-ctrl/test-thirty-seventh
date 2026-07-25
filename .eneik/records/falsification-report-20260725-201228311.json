@@ -1,0 +1,29 @@
+{
+  "violations": [
+    {
+      "roleTag": "BARCAN-TAG-00",
+      "type": "refusal_criteria",
+      "reason": "В коде обнаружены 'магические' константы, не вынесенные в именованные переменные/константы. В PR #123 в CampaignAssignmentController используются хардкодные числа 4000 и строка 'invalid_prompt_test_fail'."
+    },
+    {
+      "roleTag": "BARCAN-TAG-02",
+      "type": "methodological",
+      "philosopher": "Дэвид Чалмерс",
+      "thesis": "Принцип двумерной семантики. Жёсткое разделение внутреннего смысла данных в коде и их внешнего проявления при передаче наружу.",
+      "score": "3",
+      "mustBe": "Контроллеры должны использовать сервисы для доступа к БД",
+      "performance": "Изоляция слоев",
+      "attractive": "Чистая архитектура"
+    },
+    {
+      "roleTag": "BARCAN-TAG-07",
+      "type": "refusal_criteria",
+      "reason": "Пропуск валидации входных данных. В PR #120 и PR #123 внешние данные принимаются без принудительной валидации и глубокой санитизации (отсутствуют @Valid и проверка структуры DTO, используется Map<String, String>)."
+    },
+    {
+      "roleTag": "BARCAN-TAG-09",
+      "type": "refusal_criteria",
+      "reason": "Отсутствие Six Sigma метрики. В логах обнаружена задача 'Kano Refactoring: Implement Redis caching for API queries to optimize performance', где 'optimize performance' не является измеримой числовой дельтой."
+    }
+  ]
+}
