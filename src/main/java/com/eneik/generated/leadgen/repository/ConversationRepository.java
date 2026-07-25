@@ -6,8 +6,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface ConversationRepository extends JpaRepository<Conversation, String> {
+    Optional<Conversation> findByTelegramChatId(Long telegramChatId);
     Page<Conversation> findByStatus(String status, Pageable pageable);
     Page<Conversation> findByAssignedAgentId(String assignedAgentId, Pageable pageable);
     Page<Conversation> findByStatusAndAssignedAgentId(String status, String assignedAgentId, Pageable pageable);
