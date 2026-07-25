@@ -75,7 +75,12 @@ paths:
   /api/v1/conversations/{conversationId}/messages:
     get:
       summary: Retrieve messages for a conversation
-      description: Returns conversation history with full context of dialogue turns.
+      description: |
+        Returns conversation history with full context of dialogue turns.
+        Caching Policy:
+          - Requests without 'beforeMessageId' are cached in Redis with a 10-minute TTL to optimize high-frequency initial page load performance.
+          - Requests with 'beforeMessageId' bypass the cache to guarantee real-time data consistency for paginated historical queries.
+          - Failover: If Redis is offline or experiences connection timeouts, the system gracefully falls back to local in-memory caching and real-time database retrieval, suppressing all connection exceptions.
       parameters:
         - name: conversationId
           in: path
@@ -388,6 +393,118 @@ paths:
                     type: integer
         '400':
           description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tasks:
+    post:
+      summary: Create a new dispatch / agent task
+      description: Registers a new task in the dispatch loop.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDto'
+        '400':
+          description: Invalid input or missing ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tasks/{id}:
+    get:
+      summary: Get task details
+      description: Returns current status and rejection count of the specified task.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique task ID
+      responses:
+        '200':
+          description: Task retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDto'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tasks/{id}/submit:
+    post:
+      summary: Submit task for review
+      description: Transitions the task to UNDER_REVIEW state.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique task ID
+      responses:
+        '200':
+          description: Task submitted successfully
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tasks/{id}/reject:
+    post:
+      summary: Reject task
+      description: Transitions the task to REVIEW_REJECTED state and increments rejection count.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique task ID
+      responses:
+        '200':
+          description: Task rejected successfully
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tasks/{id}/evaluate:
+    post:
+      summary: Evaluate task status
+      description: Checks rejection count against threshold and transitions to TERMINAL if exceeded, or processes normally.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique task ID
+      responses:
+        '200':
+          description: Task evaluated successfully
+        '404':
+          description: Task not found
           content:
             application/json:
               schema:
@@ -743,3 +860,33 @@ components:
         status:
           type: string
           description: Status of the assignment (e.g. ASSIGNED)
+
+    CreateTaskRequest:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: Unique task ID
+        sessionId:
+          type: string
+          description: Unique session ID
+
+    TaskDto:
+      type: object
+      required:
+        - id
+        - status
+        - rejectionCount
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, UNDER_REVIEW, REVIEW_REJECTED, COMPLETED, TERMINAL]
+        rejectionCount:
+          type: integer
+        sessionId:
+          type: string
+          nullable: true
