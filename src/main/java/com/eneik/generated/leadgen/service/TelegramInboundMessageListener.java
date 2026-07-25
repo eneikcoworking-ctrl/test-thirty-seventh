@@ -42,13 +42,21 @@ public class TelegramInboundMessageListener {
             try {
                 log.info("Background thread processing inbound message for chat ID: {}", event.getTelegramChatId());
 
-                // Find or create conversation through service layer to ensure cache eviction/invalidation on creation
-                Conversation conversation = inboxService.getOrCreateConversation(
-                        event.getTelegramChatId(),
-                        event.getLeadName(),
-                        event.getLeadUsername(),
-                        event.getLeadPhone()
-                );
+                // Find or create conversation
+                Conversation conversation = conversationRepository.findByTelegramChatId(event.getTelegramChatId())
+                        .orElseGet(() -> {
+                            log.info("Creating new conversation for chat ID: {}", event.getTelegramChatId());
+                            Conversation newConv = new Conversation();
+                            newConv.setId(UUID.randomUUID().toString());
+                            newConv.setTelegramChatId(event.getTelegramChatId());
+                            newConv.setLeadName(event.getLeadName() != null ? event.getLeadName() : "Lead " + event.getTelegramChatId());
+                            newConv.setLeadUsername(event.getLeadUsername());
+                            newConv.setLeadPhone(event.getLeadPhone());
+                            newConv.setStatus("ACTIVE");
+                            newConv.setCreatedAt(OffsetDateTime.now());
+                            newConv.setLastMessageAt(OffsetDateTime.now());
+                            return conversationRepository.save(newConv);
+                        });
 
                 // Trigger the AI evaluation engine
                 log.info("Triggering AI evaluation engine for conversation ID: {}", conversation.getId());

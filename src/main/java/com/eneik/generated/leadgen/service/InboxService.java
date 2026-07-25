@@ -36,7 +36,6 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "conversations", key = "(#status != null ? #status : 'ALL') + ':' + (#assignedAgentId != null ? #assignedAgentId : 'NONE') + ':' + #page + ':' + #limit")
     public Page<Conversation> getConversations(String status, String assignedAgentId, int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
 
@@ -156,25 +155,4 @@ public class InboxService {
         return savedLeadMessage;
     }
 
-    private static final Logger log = LoggerFactory.getLogger(InboxService.class);
-
-    @Transactional
-    @CacheEvict(value = "conversations", allEntries = true)
-    public Conversation getOrCreateConversation(Long telegramChatId, String leadName, String leadUsername, String leadPhone) {
-        return conversationRepository.findByTelegramChatId(telegramChatId)
-                .orElseGet(() -> {
-                    log.info("Creating new conversation for chat ID: {}", telegramChatId);
-                    Conversation newConv = new Conversation();
-                    newConv.setId(UUID.randomUUID().toString());
-                    newConv.setTelegramChatId(telegramChatId);
-                    newConv.setLeadName(leadName != null ? leadName : "Lead " + telegramChatId);
-                    newConv.setLeadUsername(leadUsername);
-                    newConv.setLeadPhone(leadPhone);
-                    newConv.setStatus("ACTIVE");
-                    OffsetDateTime now = OffsetDateTime.now();
-                    newConv.setCreatedAt(now);
-                    newConv.setLastMessageAt(now);
-                    return conversationRepository.save(newConv);
-                });
-    }
 }

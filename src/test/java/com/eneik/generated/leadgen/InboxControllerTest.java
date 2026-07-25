@@ -46,8 +46,6 @@ public class InboxControllerTest {
         conversationMessageRepository.deleteAll();
         conversationRepository.deleteAll();
         if (cacheManager != null) {
-            org.springframework.cache.Cache convCache = cacheManager.getCache("conversations");
-            if (convCache != null) convCache.clear();
             org.springframework.cache.Cache msgCache = cacheManager.getCache("messages");
             if (msgCache != null) msgCache.clear();
         }
@@ -382,51 +380,10 @@ public class InboxControllerTest {
     private org.springframework.cache.CacheManager cacheManager;
 
     @Test
-    public void testConversationsQueryIsCachedAndEvicted() throws Exception {
-        // Clear all caches first to start clean
-        cacheManager.getCache("conversations").clear();
-        cacheManager.getCache("messages").clear();
-
-        OffsetDateTime now = OffsetDateTime.now();
-        Conversation c1 = new Conversation(
-                UUID.randomUUID().toString(),
-                123456L,
-                "Test Caching Lead",
-                "test_cache",
-                "+123456",
-                "ACTIVE",
-                null,
-                now,
-                now
-        );
-        conversationRepository.save(c1);
-
-        // Reset/clear mock invocation counts
-        org.mockito.Mockito.clearInvocations(conversationRepository);
-
-        // 1. Initial request (GET /api/v1/conversations) -> Cache Miss (should hit database)
-        mockMvc.perform(get("/api/v1/conversations"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(1)));
-
-        // Verify repository was called exactly once
-        org.mockito.Mockito.verify(conversationRepository, org.mockito.Mockito.times(1))
-                .findAll(org.mockito.Mockito.any(org.springframework.data.domain.Pageable.class));
-
-        // 2. Second request -> Cache Hit (should NOT hit database again!)
-        mockMvc.perform(get("/api/v1/conversations"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(1)));
-
-        // Verify repository invocation count remained at 1!
-        org.mockito.Mockito.verify(conversationRepository, org.mockito.Mockito.times(1))
-                .findAll(org.mockito.Mockito.any(org.springframework.data.domain.Pageable.class));
-    }
-
-    @Test
     public void testMessagesQueryIsCachedAndEvicted() throws Exception {
-        cacheManager.getCache("conversations").clear();
-        cacheManager.getCache("messages").clear();
+        if (cacheManager != null && cacheManager.getCache("messages") != null) {
+            cacheManager.getCache("messages").clear();
+        }
 
         String convId = UUID.randomUUID().toString();
         Conversation conv = new Conversation(
@@ -489,30 +446,27 @@ public class InboxControllerTest {
     @Test
     public void testFailSafeFallback_WhenRedisThrowsException_ServiceSucceeds() throws Exception {
         org.springframework.cache.Cache mockRedisCache = org.mockito.Mockito.mock(org.springframework.cache.Cache.class);
-        org.mockito.Mockito.when(mockRedisCache.getName()).thenReturn("conversations");
+        org.mockito.Mockito.when(mockRedisCache.getName()).thenReturn("messages");
         org.mockito.Mockito.when(mockRedisCache.get(org.mockito.Mockito.any())).thenThrow(new RuntimeException("Redis connection refused!"));
         org.mockito.Mockito.doThrow(new RuntimeException("Redis connection refused!")).when(mockRedisCache).put(org.mockito.Mockito.any(), org.mockito.Mockito.any());
 
-        org.springframework.cache.concurrent.ConcurrentMapCache localFallbackCache = new org.springframework.cache.concurrent.ConcurrentMapCache("conversations");
+        org.springframework.cache.concurrent.ConcurrentMapCache localFallbackCache = new org.springframework.cache.concurrent.ConcurrentMapCache("messages");
 
         com.eneik.generated.CacheConfig.FailSafeCache failSafeCache = new com.eneik.generated.CacheConfig.FailSafeCache(mockRedisCache, localFallbackCache);
 
-        Conversation c = new Conversation(
+        ConversationMessage c = new ConversationMessage(
                 UUID.randomUUID().toString(),
-                999999L,
-                "FailSafe Lead",
-                "failsafe",
-                "+999999",
-                "ACTIVE",
-                null,
+                "convId",
+                "text",
+                "LEAD",
                 OffsetDateTime.now(),
-                OffsetDateTime.now()
+                "sender"
         );
-        localFallbackCache.put("ALL:NONE:0:20", new org.springframework.data.domain.PageImpl<>(java.util.List.of(c)));
+        localFallbackCache.put("convId", java.util.List.of(c));
 
-        org.springframework.cache.Cache.ValueWrapper wrapper = failSafeCache.get("ALL:NONE:0:20");
+        org.springframework.cache.Cache.ValueWrapper wrapper = failSafeCache.get("convId");
         org.junit.jupiter.api.Assertions.assertNotNull(wrapper);
-        org.junit.jupiter.api.Assertions.assertEquals(localFallbackCache.get("ALL:NONE:0:20").get(), wrapper.get());
+        org.junit.jupiter.api.Assertions.assertEquals(localFallbackCache.get("convId").get(), wrapper.get());
 
         failSafeCache.put("test_key", "test_value");
         org.junit.jupiter.api.Assertions.assertEquals("test_value", localFallbackCache.get("test_key").get());

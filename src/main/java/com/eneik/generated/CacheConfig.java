@@ -15,12 +15,8 @@ import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 @Configuration
 @EnableCaching
@@ -40,17 +36,12 @@ public class CacheConfig implements CachingConfigurer {
             org.springframework.data.redis.cache.RedisCacheConfiguration defaultCacheConfig =
                     org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig();
 
-            org.springframework.data.redis.cache.RedisCacheConfiguration conversationsCacheConfig =
-                    org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
-                            .entryTtl(java.time.Duration.ofSeconds(10));
-
             org.springframework.data.redis.cache.RedisCacheConfiguration messagesCacheConfig =
                     org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
                             .entryTtl(java.time.Duration.ofMinutes(10));
 
             redisCacheManager = RedisCacheManager.builder(connectionFactory)
                     .cacheDefaults(defaultCacheConfig)
-                    .withCacheConfiguration("conversations", conversationsCacheConfig)
                     .withCacheConfiguration("messages", messagesCacheConfig)
                     .build();
         } catch (Exception e) {
@@ -284,84 +275,28 @@ public class CacheConfig implements CachingConfigurer {
         }
     }
 
-    public static class BoundedConcurrentMap<K, V> implements ConcurrentMap<K, V> {
-        private final Map<K, V> delegate;
+    public static class BoundedConcurrentMap<K, V> extends ConcurrentHashMap<K, V> {
+        private final int maxEntries;
 
         public BoundedConcurrentMap(int maxEntries) {
-            this.delegate = java.util.Collections.synchronizedMap(new LinkedHashMap<K, V>(16, 0.75f, true) {
-                @Override
-                protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-                    return size() > maxEntries;
-                }
-            });
+            super();
+            this.maxEntries = maxEntries;
         }
 
         @Override
-        public int size() { return delegate.size(); }
-        @Override
-        public boolean isEmpty() { return delegate.isEmpty(); }
-        @Override
-        public boolean containsKey(Object key) { return delegate.containsKey(key); }
-        @Override
-        public boolean containsValue(Object value) { return delegate.containsValue(value); }
-        @Override
-        public V get(Object key) { return delegate.get(key); }
-        @Override
-        public V put(K key, V value) { return delegate.put(key, value); }
-        @Override
-        public V remove(Object key) { return delegate.remove(key); }
-        @Override
-        public void putAll(Map<? extends K, ? extends V> m) { delegate.putAll(m); }
-        @Override
-        public void clear() { delegate.clear(); }
-        @Override
-        public Set<K> keySet() { return delegate.keySet(); }
-        @Override
-        public Collection<V> values() { return delegate.values(); }
-        @Override
-        public Set<Map.Entry<K, V>> entrySet() { return delegate.entrySet(); }
+        public V put(K key, V value) {
+            if (size() >= maxEntries) {
+                clear();
+            }
+            return super.put(key, value);
+        }
 
         @Override
         public V putIfAbsent(K key, V value) {
-            synchronized (delegate) {
-                if (!delegate.containsKey(key)) {
-                    return delegate.put(key, value);
-                } else {
-                    return delegate.get(key);
-                }
+            if (size() >= maxEntries) {
+                clear();
             }
-        }
-
-        @Override
-        public boolean remove(Object key, Object value) {
-            synchronized (delegate) {
-                if (delegate.containsKey(key) && java.util.Objects.equals(delegate.get(key), value)) {
-                    delegate.remove(key);
-                    return true;
-                }
-                return false;
-            }
-        }
-
-        @Override
-        public boolean replace(K key, V oldValue, V newValue) {
-            synchronized (delegate) {
-                if (delegate.containsKey(key) && java.util.Objects.equals(delegate.get(key), oldValue)) {
-                    delegate.put(key, newValue);
-                    return true;
-                }
-                return false;
-            }
-        }
-
-        @Override
-        public V replace(K key, V value) {
-            synchronized (delegate) {
-                if (delegate.containsKey(key)) {
-                    return delegate.put(key, value);
-                }
-                return null;
-            }
+            return super.putIfAbsent(key, value);
         }
     }
 }
