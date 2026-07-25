@@ -789,8 +789,8 @@
                     <div class="flex items-center gap-2 mb-1.5">
                       <span class="text-xs font-medium text-slate-500">@{chat.leadUsername || "no_username"}</span>
                       {#if statusConfigs[chat.status]}
-                        <span class="{statusConfigs[chat.status].badgeClass} font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
-                          <span class="material-symbols-outlined text-[10px] {statusConfigs[chat.status].fillIcon ? 'filled-icon' : ''}">{statusConfigs[chat.status].icon}</span>
+                        <span class="{statusConfigs[chat.status].badgeClass} font-bold px-1.5 py-0.5 rounded text-xs uppercase tracking-wider flex items-center gap-0.5">
+                          <span class="material-symbols-outlined text-xs {statusConfigs[chat.status].fillIcon ? 'filled-icon' : ''}">{statusConfigs[chat.status].icon}</span>
                           {statusConfigs[chat.status].label}
                         </span>
                       {/if}
@@ -823,8 +823,8 @@
                   <div class="flex items-center gap-2">
                     <h2 class="font-bold text-sm text-slate-900">{activeChat.leadName || activeChat.leadUsername || "Lead"}</h2>
                     {#if statusConfigs[activeChat.status]}
-                      <span class="{statusConfigs[activeChat.status].badgeClass} px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5 {activeChat.status === 'ESCALATED' ? 'animate-pulse' : ''}">
-                        <span class="material-symbols-outlined text-[11px] {statusConfigs[activeChat.status].fillIcon ? 'filled-icon' : ''}">{statusConfigs[activeChat.status].icon}</span>
+                      <span class="{statusConfigs[activeChat.status].badgeClass} px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-0.5 {activeChat.status === 'ESCALATED' ? 'animate-pulse' : ''}">
+                        <span class="material-symbols-outlined text-xs {statusConfigs[activeChat.status].fillIcon ? 'filled-icon' : ''}">{statusConfigs[activeChat.status].icon}</span>
                         {statusConfigs[activeChat.status].label}
                       </span>
                     {/if}
