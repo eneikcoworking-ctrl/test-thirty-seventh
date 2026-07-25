@@ -7,7 +7,8 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "conversation_messages")
-public class ConversationMessage {
+public class ConversationMessage implements java.io.Serializable {
+    private static final long serialVersionUID = 6677889900L;
 
     @Id
     private String id;
