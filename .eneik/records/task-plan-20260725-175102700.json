@@ -1,0 +1,124 @@
+{
+  "epics": [
+    {
+      "existingEpicId": "98003033-49fb-45e2-9b9b-92079ff97b08",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Restrict API access and redirect unauthorized users to login page"
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Patch admin dashboard authentication and REST access control",
+          "roleTag": "BARCAN-TAG-07",
+          "jtbd": "When implementing admin panel authentication for this epic, I want to enforce secure access control on REST endpoints and UI, so that unauthorized users are blocked and redirected to login.",
+          "acceptanceCriteria": "Given an unauthenticated user attempting to access a protected REST API endpoint, When the API request is received, Then the system must reject the request with an HTTP 401 Unauthorized status.\nGiven an unauthenticated user navigating to the admin dashboard UI, When the page is requested, Then the user must be redirected to the login page.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Admin panel security access enforcement",
+          "sixSigmaMetric": "Reduce unauthorized endpoint access from baseline to 0 instances",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "ddd91e1e-bcd1-4579-96a6-82f6afdfe950",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: Track and update connected Telegram account status in real-time"
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Patch session monitoring for real-time account status updates",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing real-time health monitoring for this epic, I want to detect account status updates dynamically, so that the database automatically reflects account health.",
+          "acceptanceCriteria": "Given an active campaign running on connected Telegram accounts, When an account is hit with a temporary spam-block or ban, Then the backend monitoring service must detect this event and update the account status to 'Temporary Spam-Block' or 'Permanent Ban' in the database.\nGiven an account successfully re-authorizes, When the re-authorization completes, Then the health monitoring service must update the account status to 'Active'.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Account health state synchronization latency",
+          "sixSigmaMetric": "Reduce account status update latency from manual database entry to automated real-time detection",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "a79021eb-3135-4020-aeac-d3ae3d879746",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: Implement background event listener for incoming Telegram responses to trigger AI evaluation"
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Patch inbound message background event listener",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing the background inbound event listener for this epic, I want to detect lead responses automatically, so that AI evaluation is triggered without manual API calls.",
+          "acceptanceCriteria": "Given a lead responds to an automated message via a connected Telegram account, When the inbound message is received, Then the background worker must instantly capture the message and trigger the AI evaluation engine for the next turn.\nGiven an inbound message contains an empty payload or unsupported media, When the background listener processes it, Then it must handle the error gracefully without crashing and log the failure.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Inbound message event processing delay",
+          "sixSigmaMetric": "Reduce inbound message processing delay from manual to real-time",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "b9a257be-ac70-4f93-bfde-1145443a3f88",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 2,
+      "requirements": [
+        "R1: Display color-coded status tags for conversations in unified inbox"
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Patch frontend unified inbox to render color-coded conversation tags",
+          "roleTag": "BARCAN-TAG-11",
+          "jtbd": "When implementing visual status badges for this epic, I want to render distinct color-coded tags on conversations, so that operators can quickly prioritize leads.",
+          "acceptanceCriteria": "Given the unified inbox dashboard with loaded conversations, When an operator views the list, Then conversations with 'AI Active' state must display a green tag, and 'Human Intervention Required' must display a yellow tag.\nGiven a conversation is marked as 'Closed/Converted' or 'Spam/Blocked', When rendered in the inbox, Then it must display a blue tag or a red tag respectively.",
+          "leanValue": "valuable",
+          "cynefinDomain": "clear",
+          "tocConstraintRef": "Operator visual triage time per conversation",
+          "sixSigmaMetric": "Reduce operator triage time per conversation from 15 seconds to 5 seconds",
+          "hasUi": true,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}
