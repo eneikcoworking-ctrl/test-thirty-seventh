@@ -1,0 +1,64 @@
+{
+  "epics": [
+    {
+      "existingEpicId": "f976137f-eb40-471c-873b-cf38c4b9e437",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Send a 'typing...' status signal separated by a randomized delay prior to dispatching messages."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement typing status emulation in CampaignDispatchService",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing the message dispatch sequence for this epic, I want to inject a typing status signal and randomized delay before sending the actual message payload, so that the automated dispatch emulates human behavior.",
+          "acceptanceCriteria": "Given a queued outreach message, When dispatch begins, Then a typing signal is sent followed by a random delay and the message.\nGiven the messaging bridge fails to send the typing signal, When dispatch occurs, Then the system logs the error and proceeds or retries.\nGiven an invalid recipient chat, When the typing signal is attempted, Then the dispatch fails gracefully without hanging the service.\nGiven a randomized delay configuration that resolves to 0 due to misconfiguration, When the delay is applied, Then the system uses a safe fallback minimum delay.",
+          "leanValue": "essential",
+          "cynefinDomain": "clear",
+          "tocConstraintRef": "robotic message dispatch timing",
+          "sixSigmaMetric": "reduce the rate of automated account bans triggered by instant dispatching from X to Y",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": null,
+      "title": "Admin Panel Authentication and Security",
+      "jtbd": "When accessing the SaaS-style admin control panel, I want to authenticate with secure credentials and restrict API access, so that unauthorized users cannot manipulate sensitive Telegram accounts, proxy configurations, or lead data.",
+      "kanoClass": "Must-Be",
+      "cynefinDomain": "complicated",
+      "sixSigmaMetric": "reduce the number of unauthorized API accesses to sensitive endpoints from baseline X to 0",
+      "tocConstraintRef": "unsecured admin dashboard endpoints",
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: Authenticate users, redirect unauthorized UI requests to login, and block unauthorized REST API requests."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Enforce authentication on Admin Panel UI and API endpoints",
+          "roleTag": "BARCAN-TAG-07",
+          "jtbd": "When implementing authentication for this epic, I want to secure the dashboard routes and REST API endpoints using existing models, so that only authenticated admin sessions can access the application.",
+          "acceptanceCriteria": "Given an unauthorized user trying to view the dashboard, When they navigate to the URL, Then the system must redirect them to a login page.\nGiven an unauthenticated client, When they invoke a secure REST API endpoint, Then the system returns an HTTP 401 Unauthorized response.\nGiven a user providing invalid credentials, When they attempt to authenticate, Then access is denied and a 401 response is returned.\nGiven an authenticated session that has expired, When the client attempts to call an API, Then the system returns a 401 response and forces re-authentication.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "missing session validation on API routes",
+          "sixSigmaMetric": "increase authenticated request coverage on admin endpoints from X% to 100%",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}
