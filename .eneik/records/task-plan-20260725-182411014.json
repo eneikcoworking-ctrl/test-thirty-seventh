@@ -1,0 +1,82 @@
+{
+  "epics": [
+    {
+      "existingEpicId": "f976137f-eb40-471c-873b-cf38c4b9e437",
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Migrate task queues and rate-limiting from relational/in-memory to Redis"
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Migrate message dispatch queue and rate-limiting to Redis",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing Redis dispatch for this epic, I want to replace relational task queues and rate-limiting with Redis, so that message dispatch is efficiently distributed with minimal DB overhead.",
+          "acceptanceCriteria": "Given multiple running campaigns, When outbound message actions are dispatched, Then the system pushes them onto a Redis-backed queue.\nGiven rate limits are configured, When dispatching messages, Then a Redis-backed rate-limiter enforces the limits.\nGiven Redis is unavailable, When dispatch is attempted, Then the system gracefully falls back or pauses dispatch.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Database lock contention during high-volume dispatch",
+          "sixSigmaMetric": "Reduce message dispatch latency and DB lock contention from current baseline to 40% lower",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "a79021eb-3135-4020-aeac-d3ae3d879746",
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: Implement persisted configuration for AI system prompt templates including FAQ, personas, goals, and tone"
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Persist and supply custom AI system prompts",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing prompt customization for this epic, I want to persist prompt templates and supply them to the generation engine, so that AI dialogues align with campaign objectives.",
+          "acceptanceCriteria": "Given a newly created campaign, When the administrator updates the system prompt settings, Then the custom prompt is saved.\nGiven an active dialogue, When the AI evaluates the message, Then the saved custom prompt is supplied to the AI generation engine.\nGiven invalid prompt data, When saving is attempted, Then the system rejects the update and logs an error.",
+          "leanValue": "essential",
+          "cynefinDomain": "clear",
+          "tocConstraintRef": "Hardcoded AI dialogue context limitation",
+          "sixSigmaMetric": "Increase custom prompt parameter utilization from 0% to 100% of campaigns",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": null,
+      "title": "Unblock Project Orchestration Backlog",
+      "jtbd": "When managing project delivery, I want to merge the stalled deliverable, so that the orchestration flow can process the next wishlist compile candidates.",
+      "kanoClass": "Must-Be",
+      "cynefinDomain": "clear",
+      "sixSigmaMetric": "Reduce orchestration stall time from current baseline to 0 hours",
+      "tocConstraintRef": "Stalled merge pipeline blocking wishlist orchestration",
+      "sourceIndex": 2,
+      "requirements": [
+        "R1: Resolve the single unmerged deliverable holding back 5 wishlist compile candidates"
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Merge stalled deliverable to unblock orchestration",
+          "roleTag": "BARCAN-TAG-00",
+          "jtbd": "When implementing merge hygiene for this epic, I want to review and merge the stalled deliverable, so that the orchestration pipeline is unblocked.",
+          "acceptanceCriteria": "Given an orchestration pipeline stalled by an unmerged PR, When the deliverable is reviewed and merged to main, Then the PR is closed.\nGiven the PR is merged, When ProjectFlowService runs, Then it resumes processing the 5 new candidates.",
+          "leanValue": "essential",
+          "cynefinDomain": "clear",
+          "tocConstraintRef": "Pending pull request blocking main project flow",
+          "sixSigmaMetric": "Reduce pending blocking PRs from 1 to 0",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}

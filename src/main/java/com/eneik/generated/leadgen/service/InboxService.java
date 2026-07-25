@@ -2,6 +2,8 @@ package com.eneik.generated.leadgen.service;
 
 import com.eneik.generated.leadgen.model.Conversation;
 import com.eneik.generated.leadgen.model.ConversationMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
 import org.springframework.data.domain.Page;

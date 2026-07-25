@@ -58,6 +58,79 @@ public class AuthControllerTest {
     }
 
     @Test
+    public void testExhaustiveUnauthorizedEndpoints_Return401() throws Exception {
+        // Test other protected endpoints to ensure security interceptor is robust
+        mockMvc.perform(get("/api/v1/conversations/123/messages"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(post("/api/v1/conversations/123/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"text\":\"hello\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(post("/api/v1/conversations/123/lead-messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"text\":\"hello\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(get("/api/v1/campaigns"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(post("/api/v1/campaigns")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"campaign\",\"spintaxRules\":\"hello\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(post("/api/v1/campaigns/123/leads/import")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"csv\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(post("/api/v1/campaigns/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"campaignId\":\"123\",\"agentId\":\"agent\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(post("/api/v1/scheduler/delay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actionType\":\"dispatch\",\"meanDelaySeconds\":5}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(get("/api/v1/dialogs"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(get("/api/v1/dialogs/123"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(post("/api/v1/campaigns/123/dispatch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"telegramChatId\":\"123\",\"text\":\"hello\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(post("/api/accounts/onboard/otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phoneNumber\":\"+12345\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+
+        mockMvc.perform(post("/api/accounts/onboard/session")
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode", is("UNAUTHORIZED")));
+    }
+
+    @Test
     public void testLoginWithValidCredentials_Returns200AndSetsSession() throws Exception {
         Map<String, String> credentials = new HashMap<>();
         credentials.put("username", "admin");
