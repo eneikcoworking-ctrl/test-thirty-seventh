@@ -54,7 +54,7 @@ public class InboxController {
             );
 
             return ResponseEntity.ok()
-                    .header("Cache-Control", "max-age=10")
+                    .header("Cache-Control", "max-age=" + com.eneik.generated.config.CacheConstants.TTL_CONVERSATIONS_SEC)
                     .body(response);
         } catch (Exception e) {
             ErrorResponseDto error = new ErrorResponseDto("INTERNAL_ERROR", e.getMessage(), OffsetDateTime.now());
@@ -81,7 +81,7 @@ public class InboxController {
                     .collect(Collectors.toList());
             if (beforeMessageId == null && limit == 50) {
                 return ResponseEntity.ok()
-                        .header("Cache-Control", "max-age=300")
+                        .header("Cache-Control", "max-age=" + com.eneik.generated.config.CacheConstants.TTL_MESSAGES_SEC)
                         .body(dtos);
             }
             return ResponseEntity.ok(dtos);

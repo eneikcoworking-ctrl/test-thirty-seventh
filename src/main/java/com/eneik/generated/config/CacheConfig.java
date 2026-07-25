@@ -25,9 +25,41 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.cache.annotation.CachingConfigurer;
+import org.springframework.cache.interceptor.CacheErrorHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Configuration
 @EnableCaching
-public class CacheConfig {
+public class CacheConfig implements CachingConfigurer {
+
+    private static final Logger log = LoggerFactory.getLogger(CacheConfig.class);
+
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return new CacheErrorHandler() {
+            @Override
+            public void handleCacheGetError(RuntimeException exception, org.springframework.cache.Cache cache, Object key) {
+                log.warn("Redis Cache GET failed for key {}. Falling back to database. Error: {}", key, exception.getMessage());
+            }
+
+            @Override
+            public void handleCachePutError(RuntimeException exception, org.springframework.cache.Cache cache, Object key, Object value) {
+                log.warn("Redis Cache PUT failed for key {}. Error: {}", key, exception.getMessage());
+            }
+
+            @Override
+            public void handleCacheEvictError(RuntimeException exception, org.springframework.cache.Cache cache, Object key) {
+                log.warn("Redis Cache EVICT failed for key {}. Error: {}", key, exception.getMessage());
+            }
+
+            @Override
+            public void handleCacheClearError(RuntimeException exception, org.springframework.cache.Cache cache) {
+                log.warn("Redis Cache CLEAR failed. Error: {}", exception.getMessage());
+            }
+        };
+    }
 
     @Bean
     @ConditionalOnProperty(name = "spring.cache.type", havingValue = "redis")
@@ -76,22 +108,22 @@ public class CacheConfig {
 
         Map<String, RedisCacheConfiguration> initialCacheConfigurations = new HashMap<>();
 
-        // Short 10-second TTL for conversations to allow fast dynamic updates without thrashing eviction
+        // Short TTL for conversations to allow fast dynamic updates without thrashing eviction
         initialCacheConfigurations.put(CacheConstants.CACHE_CONVERSATIONS, RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(10))
+                .entryTtl(Duration.ofSeconds(CacheConstants.TTL_CONVERSATIONS_SEC))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)));
 
-        // 5-minute TTL for messages
+        // TTL for messages
         initialCacheConfigurations.put(CacheConstants.CACHE_MESSAGES, RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(5))
+                .entryTtl(Duration.ofSeconds(CacheConstants.TTL_MESSAGES_SEC))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)));
 
-        // 1-hour TTL for campaigns
+        // TTL for campaigns
         initialCacheConfigurations.put(CacheConstants.CACHE_CAMPAIGNS, RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(1))
+                .entryTtl(Duration.ofSeconds(CacheConstants.TTL_CAMPAIGNS_SEC))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)));
         initialCacheConfigurations.put(CacheConstants.CACHE_CAMPAIGN_BY_ID, RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(1))
+                .entryTtl(Duration.ofSeconds(CacheConstants.TTL_CAMPAIGNS_SEC))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)));
 
         return RedisCacheManager.builder(connectionFactory)
@@ -107,10 +139,13 @@ public class CacheConfig {
         }
     }
 
+    public static final int PAGE_SERIALIZATION_VERSION = 1;
+
     public static class PageSerializer extends JsonSerializer<Page> {
         @Override
         public void serialize(Page value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeStartObject();
+            gen.writeNumberField("v", PAGE_SERIALIZATION_VERSION);
             gen.writeNumberField("totalElements", value.getTotalElements());
             gen.writeNumberField("totalPages", value.getTotalPages());
             gen.writeNumberField("page", value.getNumber());
@@ -125,6 +160,13 @@ public class CacheConfig {
         @Override
         public Page deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
             JsonNode node = p.getCodec().readTree(p);
+
+            // Check Page deserialization version to protect against schema drift or structure changes
+            JsonNode versionNode = node.get("v");
+            if (versionNode == null || versionNode.asInt() != PAGE_SERIALIZATION_VERSION) {
+                throw new IOException("Page serialization version mismatch or missing. Expected version: " + PAGE_SERIALIZATION_VERSION);
+            }
+
             long totalElements = node.get("totalElements").asLong();
             int page = node.get("page").asInt();
             int size = node.get("size").asInt();

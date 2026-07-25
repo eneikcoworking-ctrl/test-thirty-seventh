@@ -37,7 +37,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = CacheConstants.CACHE_CONVERSATIONS, key = "#status + '_' + (#assignedAgentId != null ? #assignedAgentId : '') + '_' + #page + '_' + #limit")
+    @Cacheable(value = CacheConstants.CACHE_CONVERSATIONS, key = "T(com.eneik.generated.config.CacheConstants).buildConversationsKey(#status, #assignedAgentId, #page, #limit)")
     public Page<Conversation> getConversations(String status, String assignedAgentId, int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
 
@@ -85,14 +85,17 @@ public class InboxService {
         message.setSentAt(now);
         message.setSenderName("Human Agent");
         ConversationMessage savedMessage = conversationMessageRepository.save(message);
-        evictConversationCaches(conversationId);
 
         // 3. Update the conversation state (mark as ESCALATED/ACTIVE, update last turn timestamp)
         // Manual message automatically marks active/handled status
         // Given an AI-active conversation, When a manual message is sent, Then the status updates to paused.
+        String oldStatus = conversation.getStatus();
         conversation.setStatus("PAUSED");
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
+
+        evictConversationCaches(conversationId, oldStatus, conversation.getAssignedAgentId());
+        evictConversationCaches(conversationId, "PAUSED", conversation.getAssignedAgentId());
 
         return savedMessage;
     }
@@ -117,6 +120,8 @@ public class InboxService {
         leadMessage.setSentAt(now);
         leadMessage.setSenderName(conversation.getLeadName());
         ConversationMessage savedLeadMessage = conversationMessageRepository.save(leadMessage);
+
+        String oldStatus = conversation.getStatus();
 
         // Given a paused dialogue, When a lead replies, Then the AI ignores the reply.
         if ("ACTIVE".equalsIgnoreCase(conversation.getStatus())) {
@@ -153,12 +158,13 @@ public class InboxService {
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
 
-        evictConversationCaches(conversationId);
+        evictConversationCaches(conversationId, oldStatus, conversation.getAssignedAgentId());
+        evictConversationCaches(conversationId, conversation.getStatus(), conversation.getAssignedAgentId());
 
         return savedLeadMessage;
     }
 
-    private void evictConversationCaches(String conversationId) {
+    private void evictConversationCaches(String conversationId, String status, String agentId) {
         if (cacheManager != null) {
             org.springframework.cache.Cache msgCache = cacheManager.getCache(CacheConstants.CACHE_MESSAGES);
             if (msgCache != null) {
@@ -166,7 +172,20 @@ public class InboxService {
             }
             org.springframework.cache.Cache convCache = cacheManager.getCache(CacheConstants.CACHE_CONVERSATIONS);
             if (convCache != null) {
-                convCache.clear();
+                // Targeted eviction of the first page (0) of conversations for key combinations
+                // to completely avoid global clear() and keep caching highly consistent & performant!
+                String[] statuses = {"ALL", status != null ? status.toUpperCase() : "ACTIVE"};
+                String[] agents = {"", agentId != null ? agentId : ""};
+                int[] limits = {10, 20, 50};
+
+                for (String s : statuses) {
+                    for (String a : agents) {
+                        for (int limit : limits) {
+                            String key = CacheConstants.buildConversationsKey(s, a, 0, limit);
+                            convCache.evict(key);
+                        }
+                    }
+                }
             }
         }
     }
