@@ -654,6 +654,30 @@ components:
           type: string
           nullable: true
           description: Spintax syntax rule template (e.g. {Hi|Hello|Hey})
+        systemPrompt:
+          type: string
+          nullable: true
+          description: Custom AI system prompt context
+        aiPersona:
+          type: string
+          nullable: true
+          description: AI persona agent prompt
+        salesGoals:
+          type: string
+          nullable: true
+          description: Target sales goals
+        toneOfVoice:
+          type: string
+          nullable: true
+          description: Formal or informal tone of voice
+        productFaqs:
+          type: string
+          nullable: true
+          description: Product FAQs context
+        qualificationRules:
+          type: string
+          nullable: true
+          description: Must qualify or other qualification rules
         createdAt:
           type: string
           format: date-time
