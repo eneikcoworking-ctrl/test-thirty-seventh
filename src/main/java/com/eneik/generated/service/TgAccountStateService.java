@@ -27,7 +27,16 @@ public class TgAccountStateService {
     public void markAsFloodWait(Long accountId) {
         TgAccount account = tgAccountRepository.findById(accountId)
                 .orElseThrow(() -> new IllegalArgumentException("Account not found: " + accountId));
-        account.setStatus("FLOOD_WAIT");
-        tgAccountRepository.save(account);
+
+        String oldStatus = account.getStatus();
+        if (!"FLOOD_WAIT".equals(oldStatus)) {
+            int updated = tgAccountRepository.updateStatusGuarded(accountId, "FLOOD_WAIT", oldStatus, java.time.LocalDateTime.now());
+            if (updated == 0) {
+                // Concurrency occurred, do an overriding save or just skip. For flood wait we must enforce it.
+                TgAccount refreshed = tgAccountRepository.findById(accountId).get();
+                refreshed.setStatus("FLOOD_WAIT");
+                tgAccountRepository.save(refreshed);
+            }
+        }
     }
 }
