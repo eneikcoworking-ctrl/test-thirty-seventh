@@ -303,7 +303,8 @@
 
     // Setup network timeout (AbortController) to handle large file sizes or slow network
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutMs = sessionFile.size > 200 * 1024 ? 50 : 15000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const res = await fetch("/api/accounts/onboard/session", {
