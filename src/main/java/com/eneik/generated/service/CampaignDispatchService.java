@@ -5,6 +5,7 @@ import com.eneik.generated.repository.TgAccountRepository;
 import com.eneik.generated.leadgen.service.TelegramBridgeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,13 +18,29 @@ public class CampaignDispatchService {
     private final TgAccountRepository tgAccountRepository;
     private final TelegramBridgeService telegramBridgeService;
     private final TgAccountStateService tgAccountStateService;
+    private final DelayCalculationService delayCalculationService;
+
+    @Value("${app.typing.mean-delay-seconds:5.0}")
+    private double meanDelaySeconds = 5.0;
+
+    private static final double SAFE_FALLBACK_MIN_DELAY_SECONDS = 1.0;
 
     public CampaignDispatchService(TgAccountRepository tgAccountRepository,
                                    TelegramBridgeService telegramBridgeService,
-                                   TgAccountStateService tgAccountStateService) {
+                                   TgAccountStateService tgAccountStateService,
+                                   DelayCalculationService delayCalculationService) {
         this.tgAccountRepository = tgAccountRepository;
         this.telegramBridgeService = telegramBridgeService;
         this.tgAccountStateService = tgAccountStateService;
+        this.delayCalculationService = delayCalculationService;
+    }
+
+    public void setMeanDelaySeconds(double meanDelaySeconds) {
+        this.meanDelaySeconds = meanDelaySeconds;
+    }
+
+    public double getMeanDelaySeconds() {
+        return meanDelaySeconds;
     }
 
     /**
@@ -61,6 +78,41 @@ public class CampaignDispatchService {
                 // Check if text triggers a simulated FLOOD_WAIT error (either general FORCE_FLOOD or phone-specific FORCE_FLOOD_<phone>)
                 if (text != null && (text.contains("FORCE_FLOOD_" + activeAccount.getPhoneNumber()) || text.trim().equals("FORCE_FLOOD") || text.startsWith("FORCE_FLOOD message"))) {
                     throw new TelegramFloodWaitException("Simulated Telegram FLOOD_WAIT error for phone: " + activeAccount.getPhoneNumber());
+                }
+
+                // Send typing status signal to the recipient prior to dispatching
+                try {
+                    telegramBridgeService.sendTypingStatus(telegramChatId);
+                } catch (IllegalArgumentException e) {
+                    // Given an invalid recipient chat, When the typing signal is attempted, Then the dispatch fails gracefully without hanging the service.
+                    log.error("Invalid recipient chat ID {}. Failing dispatch gracefully. Error: {}", telegramChatId, e.getMessage());
+                    throw e;
+                } catch (Exception e) {
+                    // Given the messaging bridge fails to send the typing signal, When dispatch occurs, Then the system logs the error and proceeds or retries.
+                    log.error("Failed to send typing status signal, proceeding with dispatch. Error: {}", e.getMessage());
+                }
+
+                // Apply randomized delay separated by typing signal and actual message dispatch
+                double delaySeconds;
+                if (meanDelaySeconds <= 0) {
+                    delaySeconds = SAFE_FALLBACK_MIN_DELAY_SECONDS;
+                } else {
+                    try {
+                        delaySeconds = delayCalculationService.calculateExponentialDelay(meanDelaySeconds);
+                        if (delaySeconds < SAFE_FALLBACK_MIN_DELAY_SECONDS) {
+                            delaySeconds = SAFE_FALLBACK_MIN_DELAY_SECONDS;
+                        }
+                    } catch (Exception e) {
+                        delaySeconds = SAFE_FALLBACK_MIN_DELAY_SECONDS;
+                    }
+                }
+
+                log.info("Applying typing emulation delay of {} seconds before dispatching actual message payload.", delaySeconds);
+                try {
+                    Thread.sleep((long) (delaySeconds * 1000));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Typing status emulation interrupted", ie);
                 }
 
                 // Emulate message dispatch via the Telegram core layer

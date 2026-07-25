@@ -18,4 +18,15 @@ public class TelegramBridgeService {
         log.info("Dispatching message to Telegram Chat ID: {} - text: '{}'", telegramChatId, text);
         return "tg_msg_" + UUID.randomUUID().toString();
     }
+
+    /**
+     * Sends a "typing..." chat status signal prior to dispatching messages.
+     * Throws IllegalArgumentException if the chat ID is invalid.
+     */
+    public void sendTypingStatus(Long telegramChatId) {
+        if (telegramChatId == null || telegramChatId <= 0) {
+            throw new IllegalArgumentException("Invalid recipient chat ID: " + telegramChatId);
+        }
+        log.info("Sending typing status to Telegram Chat ID: {}", telegramChatId);
+    }
 }
