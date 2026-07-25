@@ -22,7 +22,7 @@ public class PersonalizationEngine {
      *
      * Process:
      * 1. Retrieves the campaign's spintax rules template.
-     * 2. Rephrases/personalizes the template using Lead metadata (via LLM rephraser).
+     * 2. Rephrases/personalizes the template using Lead metadata & campaign custom prompt templates (via LLM rephraser).
      * 3. Evaluates spintax on the personalized template to resolve options randomly.
      */
     public String generatePersonalizedMessage(Campaign campaign, Lead lead) {
@@ -34,8 +34,17 @@ public class PersonalizationEngine {
             return "";
         }
 
-        // 1. Personalize template via LLM based on lead metadata
-        String personalizedTemplate = llmPersonalizationService.personalize(template, lead.getMetadata());
+        // 1. Personalize template via LLM based on lead metadata and campaign custom prompt context
+        String personalizedTemplate = llmPersonalizationService.personalize(
+                template,
+                lead.getMetadata(),
+                campaign.getSystemPrompt(),
+                campaign.getAiPersona(),
+                campaign.getSalesGoals(),
+                campaign.getToneOfVoice(),
+                campaign.getProductFaqs(),
+                campaign.getQualificationRules()
+        );
 
         // 2. Evaluate spintax to generate the final randomized variant
         return spintaxService.evaluate(personalizedTemplate);

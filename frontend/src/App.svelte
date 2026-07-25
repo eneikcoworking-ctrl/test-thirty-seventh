@@ -1,36 +1,9 @@
 <script>
   import { tick, onMount, onDestroy } from 'svelte';
+  import StatusBadge from './StatusBadge.svelte';
 
   // Core App Views
   let currentTab = "inbox"; // "inbox" | "onboard" | "ingest"
-
-  // Status Configurations to prevent hardcoding inline styles/tags and ensure consistent design tokens
-  const statusConfigs = {
-    ACTIVE: {
-      label: "AI Active",
-      badgeClass: "bg-emerald-100 text-emerald-800 border border-emerald-300",
-      icon: "smart_toy",
-      fillIcon: true
-    },
-    ESCALATED: {
-      label: "Human Intervention Required",
-      badgeClass: "bg-amber-100 text-amber-800 border border-amber-300",
-      icon: "warning",
-      fillIcon: true
-    },
-    RESOLVED: {
-      label: "Closed/Converted",
-      badgeClass: "bg-blue-100 text-blue-800 border border-blue-300",
-      icon: "check_circle",
-      fillIcon: true
-    },
-    PAUSED: {
-      label: "Spam/Blocked",
-      badgeClass: "bg-rose-100 text-rose-800 border border-rose-300",
-      icon: "block",
-      fillIcon: true
-    }
-  };
 
   // Auth State
   let isLoggedIn = false;
@@ -83,7 +56,7 @@
   // Reactivity Calculations
   $: activeChat = chats.find(c => c.id === selectedChatId);
   $: escalatedCount = chats.filter(c => c.status === "ESCALATED").length;
-  $: activeDealsCount = chats.filter(c => c.status !== "RESOLVED").length;
+  $: activeDealsCount = chats.filter(c => c.status !== "RESOLVED" && c.status !== "CLOSED" && c.status !== "CONVERTED").length;
 
   $: filteredChats = chats.filter(chat => {
     // Search filter
@@ -99,7 +72,7 @@
     // Category filter
     if (filterType === "escalated") return chat.status === "ESCALATED";
     if (filterType === "regular") return chat.status === "ACTIVE" || chat.status === "PAUSED";
-    if (filterType === "closed") return chat.status === "RESOLVED";
+    if (filterType === "closed") return chat.status === "RESOLVED" || chat.status === "CLOSED" || chat.status === "CONVERTED";
     return true;
   });
 
@@ -118,7 +91,9 @@
           await loadMessages(selectedChatId, true);
         } else if (chats.length > 0 && !selectedChatId) {
           // Default to the first chat on desktop to avoid empty states
-          await selectChat(chats[0].id);
+          if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+            await selectChat(chats[0].id);
+          }
         }
       } else {
         console.error("Failed to load conversations:", res.statusText);
@@ -525,8 +500,16 @@
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const response = await originalFetch(...args);
-      if (response.status === 401 && !args[0].includes('/api/v1/auth/login')) {
-        isLoggedIn = false;
+      if (response.status === 401) {
+        let url = "";
+        if (typeof args[0] === 'string') {
+          url = args[0];
+        } else if (args[0] && typeof args[0] === 'object' && args[0].url) {
+          url = args[0].url;
+        }
+        if (!url.includes('/api/v1/auth/login')) {
+          isLoggedIn = false;
+        }
       }
       return response;
     };
@@ -786,14 +769,9 @@
                       </span>
                     </div>
 
-                    <div class="flex items-center gap-2 mb-1.5">
+                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
                       <span class="text-xs font-medium text-slate-500">@{chat.leadUsername || "no_username"}</span>
-                      {#if statusConfigs[chat.status]}
-                        <span class="{statusConfigs[chat.status].badgeClass} font-bold px-1.5 py-0.5 rounded text-xs uppercase tracking-wider flex items-center gap-0.5">
-                          <span class="material-symbols-outlined text-xs {statusConfigs[chat.status].fillIcon ? 'filled-icon' : ''}">{statusConfigs[chat.status].icon}</span>
-                          {statusConfigs[chat.status].label}
-                        </span>
-                      {/if}
+                      <StatusBadge status={chat.status} />
                     </div>
                   </div>
                 </button>
@@ -820,14 +798,9 @@
                   {(activeChat.leadName || activeChat.leadUsername || "U").charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <h2 class="font-bold text-sm text-slate-900">{activeChat.leadName || activeChat.leadUsername || "Lead"}</h2>
-                    {#if statusConfigs[activeChat.status]}
-                      <span class="{statusConfigs[activeChat.status].badgeClass} px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-0.5 {activeChat.status === 'ESCALATED' ? 'animate-pulse' : ''}">
-                        <span class="material-symbols-outlined text-xs {statusConfigs[activeChat.status].fillIcon ? 'filled-icon' : ''}">{statusConfigs[activeChat.status].icon}</span>
-                        {statusConfigs[activeChat.status].label}
-                      </span>
-                    {/if}
+                    <StatusBadge status={activeChat.status} size="md" />
                   </div>
                   <p class="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-md">@{activeChat.leadUsername || "no_username"} • {activeChat.leadPhone || "No Phone"}</p>
                 </div>
@@ -1371,10 +1344,5 @@
   /* Add custom scrollbar and animation styling */
   textarea {
     resize: none;
-  }
-
-  /* Class to completely remove inline font-variation-settings from material symbols */
-  .filled-icon {
-    font-variation-settings: 'FILL' 1;
   }
 </style>

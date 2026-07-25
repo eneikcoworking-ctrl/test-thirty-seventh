@@ -1,0 +1,40 @@
+{
+  "epics": [
+    {
+      "existingEpicId": "f976137f-eb40-471c-873b-cf38c4b9e437",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Extract magic constants 4000 and 'invalid_prompt_test_fail' into named constants in CampaignAssignmentController.",
+        "R2: Refactor CampaignAssignmentController to route all database access through a service layer.",
+        "R3: Introduce strict input validation with @Valid and strongly typed DTOs instead of Map<String, String> in CampaignAssignmentController.",
+        "R4: Update the Redis caching log statement to include a measurable numeric delta instead of the qualitative 'optimize performance'."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Resolve self-falsification code quality findings in CampaignAssignmentController",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing architectural and validation fixes for this epic, I want to extract constants, enforce DTO validation, and route DB access via services, so that the code complies with strict quality guidelines without regressions.",
+          "acceptanceCriteria": "Given a request to CampaignAssignmentController, When it contains invalid input fields, Then it rejects the request with a generic validation error.\nGiven the CampaignAssignmentController implementation, When it processes requests, Then it uses typed DTOs and named constants rather than Maps and magic literals.\nGiven the controller's data operations, When executing business logic, Then all database calls are routed through the corresponding service layer.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "code review rejection loops",
+          "sixSigmaMetric": "reduce static analysis code smells in CampaignAssignmentController from 4 to 0",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1",
+            "R2",
+            "R3",
+            "R4"
+          ]
+        }
+      ]
+    }
+  ]
+}
