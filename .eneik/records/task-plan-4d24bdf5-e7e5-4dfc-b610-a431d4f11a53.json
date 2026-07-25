@@ -1,0 +1,34 @@
+{
+  "epics": [
+    {
+      "existingEpicId": "39e179a9-f4d4-48c3-b99c-5d47922cda16",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Manually resolve the persistent merge conflicts for task 820b328b (PR #102) that AutoMergeService failed to resolve."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Resolve merge conflicts for PR #102",
+          "roleTag": "BARCAN-TAG-00",
+          "jtbd": "When implementing the merge resolution for this epic, I want to manually resolve the git conflicts for task 820b328b, so that the orchestration flow can process the next wishlist compile candidates.",
+          "acceptanceCriteria": "Given task 820b328b has persistent merge conflicts on PR #102\nWhen the developer resolves the conflicts locally and pushes the fix\nThen the PR should be unblocked and ready for merge\nGiven the conflicts are resolved\nWhen the automated build runs\nThen it should complete without merge conflict errors",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Task 820b328b stalled state pipeline bottleneck",
+          "sixSigmaMetric": "reduce PR 102 blocked time from pending to zero",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}

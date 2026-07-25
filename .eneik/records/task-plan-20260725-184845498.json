@@ -1,0 +1,34 @@
+{
+  "epics": [
+    {
+      "existingEpicId": "39e179a9-f4d4-48c3-b99c-5d47922cda16",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Manually resolve persistent merge conflicts in PR #102 and task 820b328b-719f-4271-93de-b36f5b27b26c to allow the stalled deliverable to proceed."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Manual integration and conflict resolution for PR #102",
+          "roleTag": "BARCAN-TAG-00",
+          "jtbd": "When implementing the merge resolution for this epic, I want to manually reconcile the Git conflicts for task 820b328b-719f-4271-93de-b36f5b27b26c, so that the stalled deliverable can be successfully integrated into the main pipeline.",
+          "acceptanceCriteria": "Given PR #102 in a conflicted state against the target branch\nWhen the integration engineer manually resolves the conflicts\nThen the project compiles without any conflict marker errors\nGiven the manually resolved branch\nWhen the continuous integration test suite is executed\nThen all existing tests pass successfully without regression",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "unblock_failed_merge_attempts",
+          "sixSigmaMetric": "reduce the count of unresolved git conflicts in PR #102 from current baseline to 0",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}
