@@ -1,0 +1,11 @@
+{"verdicts": [
+  {
+    "sourceIndex": 0,
+    "verdict": "approve",
+    "criticalReason": "",
+    "concerns": [
+      "Blocking execution with Thread.sleep inside dispatchCampaignMessage can lead to thread pool exhaustion under heavy load, especially if many campaigns dispatch messages concurrently. A non-blocking asynchronous scheduler or virtual threads would be a more scalable approach.",
+      "The fallback minimum delay is hardcoded inside the service as a constant. It might be better to make it configurable as well, in case higher minimum delays are needed in some environments."
+    ]
+  }
+]}
