@@ -57,7 +57,7 @@ public class TelegramSessionHealthMonitorWorker {
      */
     @Transactional
     public void transitionAccountStatus(Long accountId, String calculatedStatus) {
-        int updatedCount = tgAccountRepository.updateStatusFromActive(accountId, calculatedStatus, LocalDateTime.now());
+        int updatedCount = tgAccountRepository.updateStatusFromActiveAtomically(accountId, calculatedStatus);
         if (updatedCount > 0) {
             log.info("Successfully transitioned account ID {} from Active to '{}' using atomically-guarded query.", accountId, calculatedStatus);
         } else {

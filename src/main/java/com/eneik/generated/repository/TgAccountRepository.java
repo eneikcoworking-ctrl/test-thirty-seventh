@@ -28,4 +28,8 @@ public interface TgAccountRepository extends JpaRepository<TgAccount, Long> {
     @Modifying(clearAutomatically = true)
     @Query("UPDATE TgAccount t SET t.status = :newStatus, t.updatedAt = :updatedAt WHERE t.id = :id AND t.status = 'Active'")
     int updateStatusFromActive(@Param("id") Long id, @Param("newStatus") String newStatus, @Param("updatedAt") LocalDateTime updatedAt);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE TgAccount a SET a.status = :newStatus WHERE a.id = :id AND a.status = 'Active'")
+    int updateStatusFromActiveAtomically(@Param("id") Long id, @Param("newStatus") String newStatus);
 }
