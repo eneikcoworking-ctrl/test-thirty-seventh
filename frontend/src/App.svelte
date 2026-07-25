@@ -4,6 +4,34 @@
   // Core App Views
   let currentTab = "inbox"; // "inbox" | "onboard" | "ingest"
 
+  // Status Configurations to prevent hardcoding inline styles/tags and ensure consistent design tokens
+  const statusConfigs = {
+    ACTIVE: {
+      label: "AI Active",
+      badgeClass: "bg-emerald-100 text-emerald-800 border border-emerald-300",
+      icon: "smart_toy",
+      fillIcon: true
+    },
+    ESCALATED: {
+      label: "Human Intervention Required",
+      badgeClass: "bg-amber-100 text-amber-800 border border-amber-300",
+      icon: "warning",
+      fillIcon: true
+    },
+    RESOLVED: {
+      label: "Closed/Converted",
+      badgeClass: "bg-blue-100 text-blue-800 border border-blue-300",
+      icon: "check_circle",
+      fillIcon: true
+    },
+    PAUSED: {
+      label: "Spam/Blocked",
+      badgeClass: "bg-rose-100 text-rose-800 border border-rose-300",
+      icon: "block",
+      fillIcon: true
+    }
+  };
+
   // Auth State
   let isLoggedIn = false;
   let usernameInput = "";
@@ -760,25 +788,10 @@
 
                     <div class="flex items-center gap-2 mb-1.5">
                       <span class="text-xs font-medium text-slate-500">@{chat.leadUsername || "no_username"}</span>
-                      {#if chat.status === 'ACTIVE'}
-                        <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
-                          <span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
-                          AI Active
-                        </span>
-                      {:else if chat.status === 'ESCALATED'}
-                        <span class="bg-amber-100 text-amber-800 border border-amber-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
-                          <span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">warning</span>
-                          Human Intervention Required
-                        </span>
-                      {:else if chat.status === 'RESOLVED'}
-                        <span class="bg-blue-100 text-blue-800 border border-blue-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
-                          <span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                          Closed/Converted
-                        </span>
-                      {:else if chat.status === 'PAUSED'}
-                        <span class="bg-rose-100 text-rose-800 border border-rose-300 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
-                          <span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">block</span>
-                          Spam/Blocked
+                      {#if statusConfigs[chat.status]}
+                        <span class="{statusConfigs[chat.status].badgeClass} font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
+                          <span class="material-symbols-outlined text-[10px] {statusConfigs[chat.status].fillIcon ? 'filled-icon' : ''}">{statusConfigs[chat.status].icon}</span>
+                          {statusConfigs[chat.status].label}
                         </span>
                       {/if}
                     </div>
@@ -809,25 +822,10 @@
                 <div>
                   <div class="flex items-center gap-2">
                     <h2 class="font-bold text-sm text-slate-900">{activeChat.leadName || activeChat.leadUsername || "Lead"}</h2>
-                    {#if activeChat.status === 'ACTIVE'}
-                      <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-                        <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
-                        AI Active
-                      </span>
-                    {:else if activeChat.status === 'ESCALATED'}
-                      <span class="bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5 animate-pulse">
-                        <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">warning</span>
-                        Human Intervention Required
-                      </span>
-                    {:else if activeChat.status === 'RESOLVED'}
-                      <span class="bg-blue-100 text-blue-800 border border-blue-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-                        <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                        Closed/Converted
-                      </span>
-                    {:else if activeChat.status === 'PAUSED'}
-                      <span class="bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5">
-                        <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">block</span>
-                        Spam/Blocked
+                    {#if statusConfigs[activeChat.status]}
+                      <span class="{statusConfigs[activeChat.status].badgeClass} px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5 {activeChat.status === 'ESCALATED' ? 'animate-pulse' : ''}">
+                        <span class="material-symbols-outlined text-[11px] {statusConfigs[activeChat.status].fillIcon ? 'filled-icon' : ''}">{statusConfigs[activeChat.status].icon}</span>
+                        {statusConfigs[activeChat.status].label}
                       </span>
                     {/if}
                   </div>
@@ -1373,5 +1371,10 @@
   /* Add custom scrollbar and animation styling */
   textarea {
     resize: none;
+  }
+
+  /* Class to completely remove inline font-variation-settings from material symbols */
+  .filled-icon {
+    font-variation-settings: 'FILL' 1;
   }
 </style>
