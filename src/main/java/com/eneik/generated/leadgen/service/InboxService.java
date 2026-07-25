@@ -5,8 +5,8 @@ import com.eneik.generated.leadgen.model.ConversationMessage;
 import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
 import com.eneik.generated.config.CacheConstants;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,16 +24,13 @@ public class InboxService {
     private final ConversationRepository conversationRepository;
     private final ConversationMessageRepository conversationMessageRepository;
     private final TelegramBridgeService telegramBridgeService;
-    private final CacheManager cacheManager;
 
     public InboxService(ConversationRepository conversationRepository,
                         ConversationMessageRepository conversationMessageRepository,
-                        TelegramBridgeService telegramBridgeService,
-                        CacheManager cacheManager) {
+                        TelegramBridgeService telegramBridgeService) {
         this.conversationRepository = conversationRepository;
         this.conversationMessageRepository = conversationMessageRepository;
         this.telegramBridgeService = telegramBridgeService;
-        this.cacheManager = cacheManager;
     }
 
     @Transactional(readOnly = true)
@@ -67,6 +64,7 @@ public class InboxService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.CACHE_MESSAGES, key = "#conversationId")
     public ConversationMessage sendManualMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -86,8 +84,6 @@ public class InboxService {
         message.setSenderName("Human Agent");
         ConversationMessage savedMessage = conversationMessageRepository.save(message);
 
-        evictConversationMessagesCache(conversationId);
-
         // 3. Update the conversation state (mark as ESCALATED/ACTIVE, update last turn timestamp)
         // Manual message automatically marks active/handled status
         // Given an AI-active conversation, When a manual message is sent, Then the status updates to paused.
@@ -104,6 +100,7 @@ public class InboxService {
      * the lead reply is saved but the AI ignores it (no automated AI response is added).
      */
     @Transactional
+    @CacheEvict(value = CacheConstants.CACHE_MESSAGES, key = "#conversationId")
     public ConversationMessage receiveLeadMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -154,17 +151,6 @@ public class InboxService {
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
 
-        evictConversationMessagesCache(conversationId);
-
         return savedLeadMessage;
-    }
-
-    private void evictConversationMessagesCache(String conversationId) {
-        if (cacheManager != null) {
-            org.springframework.cache.Cache cache = cacheManager.getCache(CacheConstants.CACHE_MESSAGES);
-            if (cache != null) {
-                cache.evict(conversationId);
-            }
-        }
     }
 }

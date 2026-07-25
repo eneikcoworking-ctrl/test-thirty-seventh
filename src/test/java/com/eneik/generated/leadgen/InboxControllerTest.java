@@ -32,10 +32,10 @@ public class InboxControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
+    @org.springframework.boot.test.mock.mockito.SpyBean
     private ConversationRepository conversationRepository;
 
-    @Autowired
+    @org.springframework.boot.test.mock.mockito.SpyBean
     private ConversationMessageRepository conversationMessageRepository;
 
     @Autowired
@@ -381,5 +381,98 @@ public class InboxControllerTest {
         // And no AI reply is generated (there are still only 5 AI messages in history)
         long aiTurnsAfter = conversationMessageRepository.countByConversationIdAndSenderType(convId, "AI_AGENT");
         assertEquals(5, aiTurnsAfter);
+    }
+
+    @Test
+    public void testMessagesQueryIsCachedAndEvicted() throws Exception {
+        if (cacheManager != null && cacheManager.getCache("messages") != null) {
+            cacheManager.getCache("messages").clear();
+        }
+
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                1234567L,
+                "Msg Caching Lead",
+                "msg_cache",
+                "+1234567",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        ConversationMessage msg = new ConversationMessage(
+                UUID.randomUUID().toString(),
+                convId,
+                "Cached message content",
+                "LEAD",
+                OffsetDateTime.now(),
+                "Msg Caching Lead"
+        );
+        conversationMessageRepository.save(msg);
+
+        org.mockito.Mockito.clearInvocations(conversationMessageRepository);
+
+        // 1. Initial request (GET /api/v1/conversations/{id}/messages) -> Cache Miss
+        mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        org.mockito.Mockito.verify(conversationMessageRepository, org.mockito.Mockito.times(1))
+                .findByConversationId(org.mockito.Mockito.eq(convId), org.mockito.Mockito.any());
+
+        // 2. Second request -> Cache Hit
+        mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        org.mockito.Mockito.verify(conversationMessageRepository, org.mockito.Mockito.times(1))
+                .findByConversationId(org.mockito.Mockito.eq(convId), org.mockito.Mockito.any());
+
+        // 3. Mutate data: Send a manual message -> triggers Cache Eviction
+        SendMessageRequestDto request = new SendMessageRequestDto("Evict message cache!");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", convId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // 4. Subsequent request -> Cache Miss (hits DB again)
+        mockMvc.perform(get("/api/v1/conversations/{conversationId}/messages", convId))
+                .andExpect(status().isOk());
+
+        // Verify that the repository was called again (total count is now 2!)
+        org.mockito.Mockito.verify(conversationMessageRepository, org.mockito.Mockito.times(2))
+                .findByConversationId(org.mockito.Mockito.eq(convId), org.mockito.Mockito.any());
+    }
+
+    @Test
+    public void testFailSafeFallback_WhenRedisThrowsException_ServiceSucceeds() throws Exception {
+        org.springframework.cache.Cache mockRedisCache = org.mockito.Mockito.mock(org.springframework.cache.Cache.class);
+        org.mockito.Mockito.when(mockRedisCache.getName()).thenReturn("messages");
+        org.mockito.Mockito.when(mockRedisCache.get(org.mockito.Mockito.any())).thenThrow(new RuntimeException("Redis connection refused!"));
+        org.mockito.Mockito.doThrow(new RuntimeException("Redis connection refused!")).when(mockRedisCache).put(org.mockito.Mockito.any(), org.mockito.Mockito.any());
+
+        org.springframework.cache.concurrent.ConcurrentMapCache localFallbackCache = new org.springframework.cache.concurrent.ConcurrentMapCache("messages");
+
+        com.eneik.generated.CacheConfig.FailSafeCache failSafeCache = new com.eneik.generated.CacheConfig.FailSafeCache(mockRedisCache, localFallbackCache);
+
+        ConversationMessage c = new ConversationMessage(
+                UUID.randomUUID().toString(),
+                "convId",
+                "text",
+                "LEAD",
+                OffsetDateTime.now(),
+                "sender"
+        );
+        localFallbackCache.put("convId", java.util.List.of(c));
+
+        org.springframework.cache.Cache.ValueWrapper wrapper = failSafeCache.get("convId");
+        org.junit.jupiter.api.Assertions.assertNotNull(wrapper);
+        org.junit.jupiter.api.Assertions.assertEquals(localFallbackCache.get("convId").get(), wrapper.get());
+
+        failSafeCache.put("test_key", "test_value");
+        org.junit.jupiter.api.Assertions.assertEquals("test_value", localFallbackCache.get("test_key").get());
     }
 }
