@@ -4,7 +4,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -35,9 +36,18 @@ public class CacheConfig {
         // Create specialized ObjectMapper for polymorphic JSON caching
         ObjectMapper objectMapper = new ObjectMapper();
 
-        // Setup polymorphic default typing for polymorphic deserialization
+        // Enforce strict class-name whitelisting for polymorphic deserialization to prevent RCE
+        PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType("com.eneik.generated.")
+                .allowIfSubType("java.util.")
+                .allowIfSubType("java.lang.")
+                .allowIfSubType("java.time.")
+                .allowIfSubType("org.springframework.data.domain.")
+                .build();
+
+        // Setup polymorphic default typing with secure type validation
         objectMapper.activateDefaultTyping(
-            LaissezFaireSubTypeValidator.instance,
+            typeValidator,
             ObjectMapper.DefaultTyping.NON_FINAL,
             JsonTypeInfo.As.PROPERTY
         );
@@ -114,7 +124,9 @@ public class CacheConfig {
             List<Object> content = new ArrayList<>();
             if (contentNode != null && contentNode.isArray()) {
                 for (JsonNode item : contentNode) {
-                    content.add(p.getCodec().treeToValue(item, Object.class));
+                    // Avoid deserializing arbitrary types into Object.class.
+                    // Instead, map strictly to our trusted Conversation class!
+                    content.add(p.getCodec().treeToValue(item, com.eneik.generated.leadgen.model.Conversation.class));
                 }
             }
 
