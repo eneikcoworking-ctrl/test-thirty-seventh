@@ -4,6 +4,8 @@ import com.eneik.generated.leadgen.model.Conversation;
 import com.eneik.generated.leadgen.model.ConversationMessage;
 import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +33,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "conversations", key = "'status_' + #status + '_agent_' + #assignedAgentId + '_page_' + #page + '_limit_' + #limit")
     public Page<Conversation> getConversations(String status, String assignedAgentId, int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
 
@@ -49,6 +52,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "messages", key = "'conv_' + #conversationId + '_limit_' + #limit + '_before_' + (#beforeMessageId != null ? #beforeMessageId : 'none')")
     public List<ConversationMessage> getMessages(String conversationId, int limit, String beforeMessageId) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "sentAt"));
         if (beforeMessageId != null && !beforeMessageId.trim().isEmpty()) {
@@ -59,6 +63,7 @@ public class InboxService {
     }
 
     @Transactional
+    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
     public ConversationMessage sendManualMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -94,6 +99,7 @@ public class InboxService {
      * the lead reply is saved but the AI ignores it (no automated AI response is added).
      */
     @Transactional
+    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
     public ConversationMessage receiveLeadMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));

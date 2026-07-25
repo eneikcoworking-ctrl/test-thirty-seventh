@@ -1,13 +1,24 @@
 package com.eneik.generated.model;
 
 import jakarta.persistence.*;
+import java.io.Serializable;
+import java.io.ObjectStreamField;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "dialogs")
-public class Dialog {
+public class Dialog implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private static final ObjectStreamField[] serialPersistentFields = {
+        new ObjectStreamField("id", Long.class),
+        new ObjectStreamField("telegramChatId", String.class),
+        new ObjectStreamField("aiState", AiState.class),
+        new ObjectStreamField("createdAt", LocalDateTime.class),
+        new ObjectStreamField("updatedAt", LocalDateTime.class)
+    };
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

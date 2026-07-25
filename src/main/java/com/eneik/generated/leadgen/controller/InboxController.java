@@ -51,7 +51,7 @@ public class InboxController {
                     convPage.getTotalPages(),
                     convPage.getNumber(),
                     convPage.getSize()
-            );
+                );
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {

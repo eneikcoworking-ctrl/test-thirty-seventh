@@ -7,6 +7,8 @@ import com.eneik.generated.model.SenderType;
 import com.eneik.generated.repository.DialogRepository;
 import com.eneik.generated.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +34,7 @@ public class DialogService {
      * and stores it in the Messages table with the sender type.
      * Enforces an 8 back-and-forth message limit as a concrete blocker.
      */
+    @CacheEvict(value = "dialogs", allEntries = true)
     public Message receiveInboundMessage(String telegramChatId, String text, SenderType senderType) {
         Dialog dialog = dialogRepository.findByTelegramChatId(telegramChatId)
                 .orElseGet(() -> {
@@ -64,17 +67,21 @@ public class DialogService {
     /**
      * Handles a stop-trigger on a dialog by updating its AI state in the database.
      */
+    @CacheEvict(value = "dialogs", allEntries = true)
     public Dialog handleStopTrigger(String telegramChatId, AiState newAiState) {
         Dialog dialog = dialogRepository.findByTelegramChatId(telegramChatId)
                 .orElseThrow(() -> new IllegalArgumentException("Dialog not found with chat id: " + telegramChatId));
 
         dialog.setAiState(newAiState);
-        return dialogRepository.save(dialog);
+        Dialog saved = dialogRepository.save(dialog);
+
+        return saved;
     }
 
     /**
      * Finds a dialog by its unique database identifier.
      */
+    @Cacheable(value = "dialogs", key = "'id_' + #id")
     public Optional<Dialog> findDialogById(Long id) {
         if (id == null) {
             return Optional.empty();
@@ -86,6 +93,7 @@ public class DialogService {
      * Retrieves dialogs with pagination to prevent out-of-memory errors as the database grows.
      * Enforces a maximum page size constraint of 50.
      */
+    @Cacheable(value = "dialogs", key = "'page_' + (#pageable != null ? #pageable.pageNumber : 0) + '_size_' + (#pageable != null ? #pageable.pageSize : 50)")
     public Page<Dialog> findAllDialogs(Pageable pageable) {
         if (pageable == null) {
             pageable = PageRequest.of(0, 50);
