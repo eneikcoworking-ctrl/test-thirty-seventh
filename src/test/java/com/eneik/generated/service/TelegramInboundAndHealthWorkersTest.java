@@ -128,25 +128,25 @@ public class TelegramInboundAndHealthWorkersTest {
         // Given accounts with different session integrity issues
         TgAccount accountSpam = new TgAccount();
         accountSpam.setPhoneNumber("+10000000001");
-        accountSpam.setStatus("Active");
+        accountSpam.setStatus(TgAccount.STATUS_ACTIVE);
         accountSpam.setSessionData("This session is spam-blocked temporarily.");
         accountSpam = tgAccountRepository.save(accountSpam);
 
         TgAccount accountBan = new TgAccount();
         accountBan.setPhoneNumber("+10000000002");
-        accountBan.setStatus("Active");
+        accountBan.setStatus(TgAccount.STATUS_ACTIVE);
         accountBan.setSessionData("Account has been banned permanently!");
         accountBan = tgAccountRepository.save(accountBan);
 
         TgAccount accountReauth = new TgAccount();
         accountReauth.setPhoneNumber("+10000000003");
-        accountReauth.setStatus("Active");
+        accountReauth.setStatus(TgAccount.STATUS_ACTIVE);
         accountReauth.setSessionData("Session expired, please reauth");
         accountReauth = tgAccountRepository.save(accountReauth);
 
         TgAccount accountHealthy = new TgAccount();
         accountHealthy.setPhoneNumber("+10000000004");
-        accountHealthy.setStatus("Active");
+        accountHealthy.setStatus(TgAccount.STATUS_ACTIVE);
         accountHealthy.setSessionData("HealthySession123456_ValidToken");
         accountHealthy = tgAccountRepository.save(accountHealthy);
 
@@ -155,15 +155,15 @@ public class TelegramInboundAndHealthWorkersTest {
 
         // Then statuses should be updated appropriately
         TgAccount updatedSpam = tgAccountRepository.findById(accountSpam.getId()).orElseThrow();
-        assertEquals("Temporary Spam-Block", updatedSpam.getStatus());
+        assertEquals(TgAccount.STATUS_SPAM_BLOCK, updatedSpam.getStatus());
 
         TgAccount updatedBan = tgAccountRepository.findById(accountBan.getId()).orElseThrow();
-        assertEquals("Permanent Ban", updatedBan.getStatus());
+        assertEquals(TgAccount.STATUS_PERMANENT_BAN, updatedBan.getStatus());
 
         TgAccount updatedReauth = tgAccountRepository.findById(accountReauth.getId()).orElseThrow();
-        assertEquals("Re-authorization Required", updatedReauth.getStatus());
+        assertEquals(TgAccount.STATUS_REAUTH_REQUIRED, updatedReauth.getStatus());
 
         TgAccount updatedHealthy = tgAccountRepository.findById(accountHealthy.getId()).orElseThrow();
-        assertEquals("Active", updatedHealthy.getStatus());
+        assertEquals(TgAccount.STATUS_ACTIVE, updatedHealthy.getStatus());
     }
 }

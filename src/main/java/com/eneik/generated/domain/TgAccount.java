@@ -13,6 +13,11 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "tg_accounts")
 public class TgAccount {
+    public static final String STATUS_ACTIVE = "Active";
+    public static final String STATUS_SPAM_BLOCK = "Temporary Spam-Block";
+    public static final String STATUS_PERMANENT_BAN = "Permanent Ban";
+    public static final String STATUS_REAUTH_REQUIRED = "Re-authorization Required";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

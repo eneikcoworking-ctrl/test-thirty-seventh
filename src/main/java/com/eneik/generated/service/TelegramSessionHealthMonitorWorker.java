@@ -32,7 +32,7 @@ public class TelegramSessionHealthMonitorWorker {
         log.trace("Background session health monitor checking active sessions...");
 
         try {
-            List<TgAccount> activeAccounts = tgAccountRepository.findByStatusIgnoreCase("Active");
+            List<TgAccount> activeAccounts = tgAccountRepository.findByStatusIgnoreCase(TgAccount.STATUS_ACTIVE);
             for (TgAccount account : activeAccounts) {
                 try {
                     String sessionData = account.getSessionData();
@@ -76,13 +76,13 @@ public class TelegramSessionHealthMonitorWorker {
 
         String lowerSession = sessionData.toLowerCase();
         if (lowerSession.contains("reauth") || lowerSession.contains("expired") || lowerSession.contains("invalid")) {
-            return "Re-authorization Required";
+            return TgAccount.STATUS_REAUTH_REQUIRED;
         }
         if (lowerSession.contains("ban")) {
-            return "Permanent Ban";
+            return TgAccount.STATUS_PERMANENT_BAN;
         }
         if (lowerSession.contains("spam")) {
-            return "Temporary Spam-Block";
+            return TgAccount.STATUS_SPAM_BLOCK;
         }
 
         return null; // Healthy, no action needed
