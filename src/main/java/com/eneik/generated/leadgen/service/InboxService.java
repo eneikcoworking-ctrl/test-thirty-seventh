@@ -54,7 +54,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "messages", key = "#conversationId", condition = "#beforeMessageId == null")
+    @Cacheable(value = "messages", key = "#conversationId", condition = "#beforeMessageId == null", sync = true)
     public List<ConversationMessage> getMessages(String conversationId, int limit, String beforeMessageId) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "sentAt"));
         if (beforeMessageId != null && !beforeMessageId.trim().isEmpty()) {
