@@ -55,8 +55,10 @@ public class CampaignAssignmentController {
 
     @GetMapping
     public ResponseEntity<?> getCampaigns() {
-        List<Campaign> campaigns = campaignRepository.findAll();
-        return ResponseEntity.ok(campaigns);
+        List<Campaign> campaigns = campaignService.getAllCampaigns();
+        return ResponseEntity.ok()
+                .header("Cache-Control", "max-age=3600")
+                .body(campaigns);
     }
 
     @PostMapping("/{campaignId}/leads/import")

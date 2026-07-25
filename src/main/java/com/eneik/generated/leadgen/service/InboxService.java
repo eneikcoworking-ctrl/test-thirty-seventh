@@ -4,6 +4,9 @@ import com.eneik.generated.leadgen.model.Conversation;
 import com.eneik.generated.leadgen.model.ConversationMessage;
 import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
+import com.eneik.generated.config.CacheConstants;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,16 +24,20 @@ public class InboxService {
     private final ConversationRepository conversationRepository;
     private final ConversationMessageRepository conversationMessageRepository;
     private final TelegramBridgeService telegramBridgeService;
+    private final CacheManager cacheManager;
 
     public InboxService(ConversationRepository conversationRepository,
                         ConversationMessageRepository conversationMessageRepository,
-                        TelegramBridgeService telegramBridgeService) {
+                        TelegramBridgeService telegramBridgeService,
+                        CacheManager cacheManager) {
         this.conversationRepository = conversationRepository;
         this.conversationMessageRepository = conversationMessageRepository;
         this.telegramBridgeService = telegramBridgeService;
+        this.cacheManager = cacheManager;
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.CACHE_CONVERSATIONS, key = "#status + '_' + (#assignedAgentId != null ? #assignedAgentId : '') + '_' + #page + '_' + #limit")
     public Page<Conversation> getConversations(String status, String assignedAgentId, int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
 
@@ -49,6 +56,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.CACHE_MESSAGES, key = "#conversationId", condition = "#beforeMessageId == null && #limit == 50")
     public List<ConversationMessage> getMessages(String conversationId, int limit, String beforeMessageId) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "sentAt"));
         if (beforeMessageId != null && !beforeMessageId.trim().isEmpty()) {
@@ -77,6 +85,8 @@ public class InboxService {
         message.setSentAt(now);
         message.setSenderName("Human Agent");
         ConversationMessage savedMessage = conversationMessageRepository.save(message);
+
+        evictConversationMessagesCache(conversationId);
 
         // 3. Update the conversation state (mark as ESCALATED/ACTIVE, update last turn timestamp)
         // Manual message automatically marks active/handled status
@@ -144,6 +154,17 @@ public class InboxService {
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
 
+        evictConversationMessagesCache(conversationId);
+
         return savedLeadMessage;
+    }
+
+    private void evictConversationMessagesCache(String conversationId) {
+        if (cacheManager != null) {
+            org.springframework.cache.Cache cache = cacheManager.getCache(CacheConstants.CACHE_MESSAGES);
+            if (cache != null) {
+                cache.evict(conversationId);
+            }
+        }
     }
 }
