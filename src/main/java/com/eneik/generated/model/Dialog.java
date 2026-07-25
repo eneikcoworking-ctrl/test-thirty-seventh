@@ -1,5 +1,6 @@
 package com.eneik.generated.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.io.ObjectStreamField;
@@ -38,6 +39,7 @@ public class Dialog implements Serializable {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "dialog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Message> messages = new ArrayList<>();
 
     @PrePersist

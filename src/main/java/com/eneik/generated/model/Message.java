@@ -1,5 +1,6 @@
 package com.eneik.generated.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.io.ObjectStreamField;
@@ -23,6 +24,7 @@ public class Message implements Serializable {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dialog_id", nullable = false)
+    @JsonIgnore
     private Dialog dialog;
 
     @Column(name = "text", nullable = false, columnDefinition = "TEXT")
