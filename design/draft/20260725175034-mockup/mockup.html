@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lead Prioritization - Precision CRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed": "#dae2fd",
+                    "surface-dim": "#d8dadc",
+                    "surface-container-low": "#f2f4f6",
+                    "surface": "#f7f9fb",
+                    "on-tertiary-fixed": "#271901",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-bright": "#f7f9fb",
+                    "on-background": "#191c1e",
+                    "on-error-container": "#93000a",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#bec6e0",
+                    "on-surface": "#191c1e",
+                    "inverse-surface": "#2d3133",
+                    "on-secondary-container": "#54647a",
+                    "secondary-fixed": "#d3e4fe",
+                    "tertiary-fixed-dim": "#dec29a",
+                    "surface-container-high": "#e6e8ea",
+                    "on-secondary-fixed": "#0b1c30",
+                    "secondary": "#505f76",
+                    "surface-container": "#eceef0",
+                    "secondary-fixed-dim": "#b7c8e1",
+                    "on-surface-variant": "#45464d",
+                    "on-tertiary-fixed-variant": "#574425",
+                    "inverse-primary": "#bec6e0",
+                    "on-secondary": "#ffffff",
+                    "tertiary-container": "#271901",
+                    "primary": "#000000",
+                    "background": "#f7f9fb",
+                    "on-primary-fixed": "#131b2e",
+                    "surface-variant": "#e0e3e5",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "surface-container-highest": "#e0e3e5",
+                    "inverse-on-surface": "#eff1f3",
+                    "primary-container": "#131b2e",
+                    "tertiary": "#000000",
+                    "surface-tint": "#565e74",
+                    "on-error": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "outline-variant": "#c6c6cd",
+                    "secondary-container": "#d0e1fb",
+                    "on-primary": "#ffffff",
+                    "outline": "#76777d",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed": "#fcdeb5",
+                    "on-primary-container": "#7c839b",
+                    "on-tertiary-container": "#98805d",
+                    "on-secondary-fixed-variant": "#38485d"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "20px",
+                    "xl": "32px",
+                    "sm": "8px",
+                    "lg": "24px",
+                    "2xl": "48px",
+                    "base": "4px",
+                    "margin-mobile": "16px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "margin-desktop": "32px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Hanken Grotesk"],
+                    "headline-md": ["Hanken Grotesk"],
+                    "body-lg": ["Hanken Grotesk"],
+                    "display": ["Hanken Grotesk"],
+                    "body-sm": ["Hanken Grotesk"],
+                    "body-md": ["Hanken Grotesk"],
+                    "headline-lg": ["Hanken Grotesk"],
+                    "headline-lg-mobile": ["Hanken Grotesk"],
+                    "label-md": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "display": ["44px", {"lineHeight": "52px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .soft-lift { box-shadow: 0px 4px 12px rgba(15, 23, 42, 0.08); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-20 md:pb-0 selection:bg-primary-fixed selection:text-primary">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-40 bg-surface dark:bg-background border-b border-outline-variant dark:border-on-surface-variant flex items-center justify-between px-margin-mobile h-16">
+<div class="flex items-center gap-4">
+<button class="active:scale-95 duration-100 hover:bg-surface-container-high transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-inverse-primary" data-icon="menu">menu</span>
+</button>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-on-surface dark:text-inverse-on-surface">Leads</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="active:scale-95 duration-100 hover:bg-surface-container-high transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-inverse-primary" data-icon="search">search</span>
+</button>
+<div class="hidden md:flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant">
+<span class="material-symbols-outlined text-outline" data-icon="filter_list">filter_list</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Filter Priority</span>
+</div>
+</div>
+</header>
+<main class="max-w-4xl mx-auto px-4 md:px-margin-desktop py-8">
+<!-- KPI Row -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+<div class="bg-surface-container-lowest border border-outline-variant p-md rounded-lg">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-md text-label-md text-on-surface-variant">TOTAL LEADS</span>
+<span class="material-symbols-outlined text-primary text-sm" data-icon="trending_up">trending_up</span>
+</div>
+<div class="font-headline-lg text-headline-lg font-bold">24</div>
+<div class="text-[10px] text-on-error-container font-bold">+4 from yesterday</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-md rounded-lg border-l-4 border-l-error">
+<span class="font-label-md text-label-md text-on-surface-variant">URGENT</span>
+<div class="font-headline-lg text-headline-lg font-bold text-error">1</div>
+<div class="text-[10px] text-outline font-medium">Needs immediate reply</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-md rounded-lg">
+<span class="font-label-md text-label-md text-on-surface-variant">RESPONSE RATE</span>
+<div class="font-headline-lg text-headline-lg font-bold">94%</div>
+<div class="text-[10px] text-on-secondary-container font-medium">Avg. 12m response</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-md rounded-lg">
+<span class="font-label-md text-label-md text-on-surface-variant">CONVERSIONS</span>
+<div class="font-headline-lg text-headline-lg font-bold">12</div>
+<div class="text-[10px] text-on-tertiary-container font-medium">82% of target</div>
+</div>
+</section>
+<!-- Lead Conversation List -->
+<div class="flex flex-col gap-3">
+<!-- Lead: Sarah Jenkins (Urgent) -->
+<div class="group bg-surface-container-lowest border border-outline-variant hover:border-primary-container transition-all duration-200 cursor-pointer flex items-center p-md rounded-xl relative overflow-hidden active:scale-[0.99]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-error"></div>
+<div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 mr-4 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a woman with a confident expression, wearing a minimalist black blazer, soft natural lighting, high-end corporate photography style with a clean neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkGATmnAQF6QsjUjRSlaPDX37nNDuCMRkO7Uc7eQDNEUwyHAMtIa4aNKOMV_yoQzLTmvsNZ9Is7e3jwt1tEGA4YyYG0DRikiLjaDSrXq0IVx1QC1C0r_MmshGBdI0T3Twk66Q23e306Sb7O55XHulmYI5cUInUqcUIXbeZINzWSq6GDduiKm_pm6aKf7iCvwo52P9o-MZJXKeA6OZP-mB1lkfF2mChyQ3iVawTbM4iZI0mKfWoYfsQx5og5knSqUqKXWdytC9aDqzT"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-headline-md text-headline-md text-on-surface truncate">Sarah Jenkins</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2m ago</span>
+</div>
+<div class="flex justify-between items-end">
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate pr-4">"I'm ready to move forward with the premium tier, just need the final contract..."</p>
+<span class="px-2 py-1 bg-error-container text-on-error-container text-[10px] font-bold rounded uppercase tracking-wider">Urgent</span>
+</div>
+</div>
+<div class="ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- Lead: David Miller (New) -->
+<div class="group bg-surface-container-lowest border border-outline-variant hover:border-primary-container transition-all duration-200 cursor-pointer flex items-center p-md rounded-xl relative overflow-hidden active:scale-[0.99]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary-container"></div>
+<div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 mr-4 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged man with short hair and glasses, wearing a sharp grey suit. The lighting is bright and modern, suggesting an executive office environment, high resolution and minimalist." src="https://lh3.googleusercontent.com/aida-public/AB6AXuChaJEJGe6d4k7kpvMl5kOOES0Di8tKL7iODlAwSq3gzytD5vwzmuFQoOvZ2w2TN4wX4y886Kf-3QWsSF8aYBGP5u0AQoKeSmpHJUoN4FtBGTCwQqXLfIVvz2EiO8g2aDUK2vCXCoVdsIJHNkL7VHlnaHjxH32mit02SRJNSXYQT3j7bWf6gmZ-f09Njywrh5iih5StegtDirghyvzejqEKZUzqfBHi4o7vh2r-gMwJmdXq6W2HqB5s2I1oSpombFABeclTOpqkHQtq"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-headline-md text-headline-md text-on-surface truncate">David Miller</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">45m ago</span>
+</div>
+<div class="flex justify-between items-end">
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate pr-4">Inquiry regarding enterprise pricing for a team of 50 users.</p>
+<span class="px-2 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded uppercase tracking-wider">New</span>
+</div>
+</div>
+<div class="ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- Lead: Elena Rodriguez (Pending) -->
+<div class="group bg-surface-container-lowest border border-outline-variant hover:border-primary-container transition-all duration-200 cursor-pointer flex items-center p-md rounded-xl relative overflow-hidden active:scale-[0.99]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary-fixed"></div>
+<div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 mr-4 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Close up portrait of a creative professional woman with a warm smile, wearing modern glasses and a white linen shirt. The aesthetic is clean, well-lit, and minimalist, emphasizing clarity and focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB52L1B4vTzWoYyuBkgSwThYxC7fht45h6Tt9mNOFbVpUw0wpgddu4tQfHj8uKwsmggJexZkpRnKRa8e4eBfuM44nVFqMhBJEvR33ij-o40ubasHmZzVKohZmMSlnilevfye9pv6zkZDMQxW00zz4Fy5a1xAhX0V8MIS8b716R0uebVToZxwLWrYwnmZhAFvRYWBGdI0pOW9LwD16usOG8ZrwUYTHBeBnpBXCVe1rTH272r3EoZJrD-Br6-_4YCOTtveUVW9FSiPFoA"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-headline-md text-headline-md text-on-surface truncate">Elena Rodriguez</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">3h ago</span>
+</div>
+<div class="flex justify-between items-end">
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate pr-4">Sent the demo recording. Waiting for feedback from her technical team.</p>
+<span class="px-2 py-1 bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold rounded uppercase tracking-wider">Pending</span>
+</div>
+</div>
+<div class="ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- Lead: Michael Chen (Converted) -->
+<div class="group bg-surface-container-low border border-outline-variant/50 opacity-80 hover:opacity-100 transition-all duration-200 cursor-pointer flex items-center p-md rounded-xl relative overflow-hidden active:scale-[0.99]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-on-tertiary-container"></div>
+<div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 mr-4 bg-surface-container grayscale">
+<img class="w-full h-full object-cover" data-alt="Clean corporate headshot of an Asian man in a high-quality navy blue sweater. Soft professional lighting, blurred office interior in the background, sharp focus, professional and trustworthy vibe." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZIw5YkFVUhlVgMv3cvl2qqFsgqWFXoJ21lFPKI9_tWNwhvJiEsC0RfarELPXsh12jXoACCGpwY3q_yQuiTgWvAwhAI8ZFidDcDcFSFqAiYfMAWZvWayfUKJbxaB9Zn2ry6qGbx8jRVVsHMGC8n5lBR33ZFbDPL6iZXVLXZk1uLL3JvScxrB0qHXnHG7F6RnGLlCi1-P1yiNR-Mz7y5W3RIYI6mivQntSZ13f6O4V7PTEQe97O3TzUswJ3JS0ISxcQn77dhrXnNf2L"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-headline-md text-headline-md text-on-surface truncate">Michael Chen</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">1d ago</span>
+</div>
+<div class="flex justify-between items-end">
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate pr-4">Onboarding scheduled for Monday at 10 AM.</p>
+<span class="px-2 py-1 bg-surface-variant text-on-surface-variant text-[10px] font-bold rounded uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Converted
+                        </span>
+</div>
+</div>
+<div class="ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- Secondary Actions / Search Suggestions -->
+<div class="mt-12 grid md:grid-cols-2 gap-gutter">
+<div class="bg-primary-container p-lg rounded-xl text-on-primary">
+<h4 class="font-headline-md text-headline-md mb-2">Automated Follow-ups</h4>
+<p class="font-body-sm text-body-sm text-on-primary-container mb-4">3 leads haven't been contacted in 24 hours. Start a batch email sequence?</p>
+<button class="bg-surface text-primary font-label-md text-label-md px-6 py-3 rounded-full hover:bg-surface-bright transition-colors active:scale-95 duration-100">
+                    Review Queue
+                </button>
+</div>
+<div class="border border-dashed border-outline-variant p-lg rounded-xl flex flex-col justify-center items-center text-center">
+<span class="material-symbols-outlined text-primary mb-2 text-4xl" data-icon="person_add">person_add</span>
+<h4 class="font-headline-md text-headline-md text-on-surface">New Opportunity?</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-4">Manually add a new lead to the CRM.</p>
+<button class="border border-primary text-primary font-label-md text-label-md px-6 py-2 rounded-full hover:bg-primary-fixed transition-colors">
+                    Add Lead
+                </button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 flex justify-around items-center h-20 px-2 bg-surface dark:bg-background border-t border-outline-variant">
+<button class="flex flex-col items-center justify-center text-on-secondary-container dark:text-on-secondary-fixed hover:text-primary transition-colors active:scale-90 duration-100">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-label-md text-label-md">Inbox</span>
+</button>
+<button class="flex flex-col items-center justify-center text-primary dark:text-inverse-primary font-bold bg-secondary-container dark:bg-on-secondary-fixed-variant rounded-full px-4 py-1 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-label-md text-label-md">Leads</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-secondary-container dark:text-on-secondary-fixed hover:text-primary transition-colors active:scale-90 duration-100">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span class="font-label-md text-label-md">Tasks</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-secondary-container dark:text-on-secondary-fixed hover:text-primary transition-colors active:scale-90 duration-100">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</button>
+</nav>
+<!-- FAB for Lead Creation (Contextual) -->
+<button class="fixed bottom-24 right-6 md:bottom-12 md:right-12 w-14 h-14 bg-primary text-on-primary rounded-full soft-lift flex items-center justify-center active:scale-90 transition-transform z-40">
+<span class="material-symbols-outlined text-3xl" data-icon="add">add</span>
+</button>
+<script>
+        // Simple Micro-interaction: Update relative timestamps or simulate real-time notification
+        document.addEventListener('DOMContentLoaded', () => {
+            const urgentCard = document.querySelector('.bg-error-container')?.closest('.group');
+            if (urgentCard) {
+                // Subtle pulse for urgent lead
+                urgentCard.classList.add('animate-pulse');
+                setTimeout(() => urgentCard.classList.remove('animate-pulse'), 3000);
+            }
+        });
+    </script>
+</body></html>
