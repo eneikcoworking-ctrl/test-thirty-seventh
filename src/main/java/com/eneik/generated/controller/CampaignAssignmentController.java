@@ -4,9 +4,10 @@ import com.eneik.generated.domain.Campaign;
 import com.eneik.generated.domain.Lead;
 import com.eneik.generated.dto.CampaignAssignmentRequest;
 import com.eneik.generated.dto.CampaignAssignmentResponse;
+import com.eneik.generated.dto.CampaignCreateRequest;
+import com.eneik.generated.dto.CampaignSystemPromptRequest;
 import com.eneik.generated.dto.ErrorResponse;
 import com.eneik.generated.dto.ImportLeadsRequest;
-import com.eneik.generated.repository.CampaignRepository;
 import com.eneik.generated.service.CampaignAssignmentService;
 import com.eneik.generated.service.CampaignService;
 import com.eneik.generated.service.LeadImportService;
@@ -17,7 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/campaigns")
@@ -25,92 +26,44 @@ public class CampaignAssignmentController {
 
     private static final Logger log = LoggerFactory.getLogger(CampaignAssignmentController.class);
 
+    public static final String INVALID_PROMPT_KEYWORD = "invalid_prompt_test_fail";
+
     private final CampaignAssignmentService campaignAssignmentService;
     private final CampaignService campaignService;
     private final LeadImportService leadImportService;
-    private final CampaignRepository campaignRepository;
 
     public CampaignAssignmentController(CampaignAssignmentService campaignAssignmentService,
                                         CampaignService campaignService,
-                                        LeadImportService leadImportService,
-                                        CampaignRepository campaignRepository) {
+                                        LeadImportService leadImportService) {
         this.campaignAssignmentService = campaignAssignmentService;
         this.campaignService = campaignService;
         this.leadImportService = leadImportService;
-        this.campaignRepository = campaignRepository;
     }
 
-    private void validatePromptData(String systemPrompt, String aiPersona, String salesGoals, String toneOfVoice, String productFaqs, String qualificationRules) {
-        if (systemPrompt != null && systemPrompt.trim().isEmpty() && !systemPrompt.isEmpty()) {
-            throw new IllegalArgumentException("System prompt must not be empty or blank");
-        }
-        if (systemPrompt != null && systemPrompt.length() > 4000) {
-            throw new IllegalArgumentException("System prompt exceeds maximum length of 4000 characters");
-        }
-        if (aiPersona != null && aiPersona.trim().isEmpty() && !aiPersona.isEmpty()) {
-            throw new IllegalArgumentException("AI Persona must not be empty or blank");
-        }
-        if (aiPersona != null && aiPersona.length() > 4000) {
-            throw new IllegalArgumentException("AI Persona exceeds maximum length of 4000 characters");
-        }
-        if (salesGoals != null && salesGoals.trim().isEmpty() && !salesGoals.isEmpty()) {
-            throw new IllegalArgumentException("Sales goals must not be empty or blank");
-        }
-        if (salesGoals != null && salesGoals.length() > 4000) {
-            throw new IllegalArgumentException("Sales goals exceed maximum length of 4000 characters");
-        }
-        if (toneOfVoice != null && toneOfVoice.trim().isEmpty() && !toneOfVoice.isEmpty()) {
-            throw new IllegalArgumentException("Tone of voice must not be empty or blank");
-        }
-        if (toneOfVoice != null && toneOfVoice.length() > 4000) {
-            throw new IllegalArgumentException("Tone of voice exceeds maximum length of 4000 characters");
-        }
-        if (productFaqs != null && productFaqs.trim().isEmpty() && !productFaqs.isEmpty()) {
-            throw new IllegalArgumentException("Product FAQs must not be empty or blank");
-        }
-        if (productFaqs != null && productFaqs.length() > 4000) {
-            throw new IllegalArgumentException("Product FAQs exceed maximum length of 4000 characters");
-        }
-        if (qualificationRules != null && qualificationRules.trim().isEmpty() && !qualificationRules.isEmpty()) {
-            throw new IllegalArgumentException("Qualification rules must not be empty or blank");
-        }
-        if (qualificationRules != null && qualificationRules.length() > 4000) {
-            throw new IllegalArgumentException("Qualification rules exceed maximum length of 4000 characters");
-        }
-        if (systemPrompt != null && systemPrompt.toLowerCase().contains("invalid_prompt_test_fail")) {
+    private void checkDisallowedKeywords(String systemPrompt) {
+        if (systemPrompt != null && systemPrompt.toLowerCase().contains(INVALID_PROMPT_KEYWORD)) {
             throw new IllegalArgumentException("System prompt contains disallowed invalid keywords");
         }
     }
 
     @PostMapping
-    public ResponseEntity<?> createCampaign(@RequestBody Map<String, String> request) {
-        String name = request.get("name");
-        if (name == null || name.trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("INVALID_INPUT", "Campaign name is required"));
-        }
-        String spintaxRules = request.get("spintaxRules");
-        String id = request.get("id");
+    public ResponseEntity<?> createCampaign(@Valid @RequestBody CampaignCreateRequest request) {
+        String id = request.getId();
         if (id == null || id.trim().isEmpty()) {
             id = java.util.UUID.randomUUID().toString();
         }
 
-        String systemPrompt = request.get("systemPrompt");
-        String aiPersona = request.get("aiPersona");
-        String salesGoals = request.get("salesGoals");
-        String toneOfVoice = request.get("toneOfVoice");
-        String productFaqs = request.get("productFaqs");
-        String qualificationRules = request.get("qualificationRules");
-
         try {
-            validatePromptData(systemPrompt, aiPersona, salesGoals, toneOfVoice, productFaqs, qualificationRules);
+            checkDisallowedKeywords(request.getSystemPrompt());
         } catch (IllegalArgumentException e) {
-            log.error("Invalid custom system prompt in campaign creation for name {}: {}", name, e.getMessage());
+            log.error("Invalid custom system prompt in campaign creation for name {}: {}", request.getName(), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ErrorResponse("INVALID_PROMPT_DATA", e.getMessage()));
         }
 
-        Campaign campaign = new Campaign(id, name, spintaxRules, systemPrompt, aiPersona, salesGoals, toneOfVoice, productFaqs, qualificationRules);
+        Campaign campaign = new Campaign(id, request.getName(), request.getSpintaxRules(), request.getSystemPrompt(),
+                request.getAiPersona(), request.getSalesGoals(), request.getToneOfVoice(), request.getProductFaqs(),
+                request.getQualificationRules());
         Campaign savedCampaign = campaignService.saveCampaign(campaign);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedCampaign);
     }
@@ -118,36 +71,28 @@ public class CampaignAssignmentController {
     @PutMapping("/{campaignId}/system-prompt")
     public ResponseEntity<?> updateSystemPrompt(
             @PathVariable("campaignId") String campaignId,
-            @RequestBody Map<String, String> request) {
+            @Valid @RequestBody CampaignSystemPromptRequest request) {
 
-        Campaign campaign = campaignRepository.findById(campaignId)
-                .orElse(null);
+        Campaign campaign = campaignService.getCampaign(campaignId).orElse(null);
         if (campaign == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse("RESOURCE_NOT_FOUND", "Campaign not found: " + campaignId));
         }
 
-        String systemPrompt = request.get("systemPrompt");
-        String aiPersona = request.get("aiPersona");
-        String salesGoals = request.get("salesGoals");
-        String toneOfVoice = request.get("toneOfVoice");
-        String productFaqs = request.get("productFaqs");
-        String qualificationRules = request.get("qualificationRules");
-
         try {
-            validatePromptData(systemPrompt, aiPersona, salesGoals, toneOfVoice, productFaqs, qualificationRules);
+            checkDisallowedKeywords(request.getSystemPrompt());
         } catch (IllegalArgumentException e) {
             log.error("Invalid custom system prompt update attempt for campaign ID {}: {}", campaignId, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ErrorResponse("INVALID_PROMPT_DATA", e.getMessage()));
         }
 
-        campaign.setSystemPrompt(systemPrompt);
-        campaign.setAiPersona(aiPersona);
-        campaign.setSalesGoals(salesGoals);
-        campaign.setToneOfVoice(toneOfVoice);
-        campaign.setProductFaqs(productFaqs);
-        campaign.setQualificationRules(qualificationRules);
+        campaign.setSystemPrompt(request.getSystemPrompt());
+        campaign.setAiPersona(request.getAiPersona());
+        campaign.setSalesGoals(request.getSalesGoals());
+        campaign.setToneOfVoice(request.getToneOfVoice());
+        campaign.setProductFaqs(request.getProductFaqs());
+        campaign.setQualificationRules(request.getQualificationRules());
 
         Campaign savedCampaign = campaignService.saveCampaign(campaign);
         return ResponseEntity.ok(savedCampaign);
@@ -155,7 +100,7 @@ public class CampaignAssignmentController {
 
     @GetMapping
     public ResponseEntity<?> getCampaigns() {
-        List<Campaign> campaigns = campaignRepository.findAll();
+        List<Campaign> campaigns = campaignService.getAllCampaigns();
         return ResponseEntity.ok(campaigns);
     }
 
@@ -163,7 +108,7 @@ public class CampaignAssignmentController {
     public ResponseEntity<?> importLeads(
             @PathVariable("campaignId") String campaignId,
             @RequestBody ImportLeadsRequest request) {
-        if (!campaignRepository.existsById(campaignId)) {
+        if (!campaignService.existsById(campaignId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse("RESOURCE_NOT_FOUND", "Campaign not found: " + campaignId));
         }

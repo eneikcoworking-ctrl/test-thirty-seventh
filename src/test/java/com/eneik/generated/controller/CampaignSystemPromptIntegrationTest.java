@@ -84,18 +84,19 @@ public class CampaignSystemPromptIntegrationTest {
         Campaign campaign = new Campaign(id, "Test Campaign", "rules");
         campaignRepository.save(campaign);
 
-        // When saving invalid prompt data is attempted (e.g. systemPrompt contains invalid_prompt_test_fail trigger or blank fields)
+        // When saving invalid prompt data is attempted (e.g. systemPrompt exceeds maximum length)
         Map<String, String> payload = new HashMap<>();
-        payload.put("systemPrompt", "  "); // blank string
+        String longPrompt = "a".repeat(4001);
+        payload.put("systemPrompt", longPrompt);
         payload.put("aiPersona", "Friendly sales agent");
 
-        // Then the system rejects the update and logs an error, returning 400 Bad Request
+        // Then the system rejects the update with standard validation error format
         mockMvc.perform(put("/api/v1/campaigns/{id}/system-prompt", id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode", is("INVALID_PROMPT_DATA")))
-                .andExpect(jsonPath("$.message", is("System prompt must not be empty or blank")));
+                .andExpect(jsonPath("$.errorCode", is("VALIDATION_FAILED")))
+                .andExpect(jsonPath("$.message", is("Input validation failed")));
 
         // Test with disallowed keyword
         Map<String, String> invalidKeywordPayload = new HashMap<>();

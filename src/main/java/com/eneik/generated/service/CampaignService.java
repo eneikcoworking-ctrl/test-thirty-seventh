@@ -24,4 +24,14 @@ public class CampaignService {
     public Optional<Campaign> getCampaign(String id) {
         return campaignRepository.findById(id);
     }
+
+    @Transactional(readOnly = true)
+    public java.util.List<Campaign> getAllCampaigns() {
+        return campaignRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsById(String id) {
+        return campaignRepository.existsById(id);
+    }
 }
