@@ -155,7 +155,7 @@ public class CampaignAssignmentController {
 
     @GetMapping
     public ResponseEntity<?> getCampaigns() {
-        List<Campaign> campaigns = campaignRepository.findAll();
+        List<Campaign> campaigns = campaignService.getAllCampaigns();
         return ResponseEntity.ok(campaigns);
     }
 

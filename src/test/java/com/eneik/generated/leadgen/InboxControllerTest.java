@@ -1,10 +1,12 @@
 package com.eneik.generated.leadgen;
 
+import com.eneik.generated.config.CacheConstants;
 import com.eneik.generated.leadgen.controller.SendMessageRequestDto;
 import com.eneik.generated.leadgen.model.Conversation;
 import com.eneik.generated.leadgen.model.ConversationMessage;
 import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
+import com.eneik.generated.service.CampaignService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,15 +41,25 @@ public class InboxControllerTest {
     private ConversationMessageRepository conversationMessageRepository;
 
     @Autowired
+    private CampaignService campaignService;
+
+    @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private org.springframework.cache.CacheManager cacheManager;
 
     @BeforeEach
     public void setup() {
         conversationMessageRepository.deleteAll();
         conversationRepository.deleteAll();
         if (cacheManager != null) {
-            org.springframework.cache.Cache msgCache = cacheManager.getCache("messages");
-            if (msgCache != null) msgCache.clear();
+            for (String cacheName : cacheManager.getCacheNames()) {
+                org.springframework.cache.Cache cache = cacheManager.getCache(cacheName);
+                if (cache != null) {
+                    cache.clear();
+                }
+            }
         }
     }
 
@@ -376,13 +388,10 @@ public class InboxControllerTest {
         assertEquals(5, aiTurnsAfter);
     }
 
-    @Autowired
-    private org.springframework.cache.CacheManager cacheManager;
-
     @Test
     public void testMessagesQueryIsCachedAndEvicted() throws Exception {
-        if (cacheManager != null && cacheManager.getCache("messages") != null) {
-            cacheManager.getCache("messages").clear();
+        if (cacheManager != null && cacheManager.getCache(CacheConstants.MESSAGES) != null) {
+            cacheManager.getCache(CacheConstants.MESSAGES).clear();
         }
 
         String convId = UUID.randomUUID().toString();
@@ -470,5 +479,77 @@ public class InboxControllerTest {
 
         failSafeCache.put("test_key", "test_value");
         org.junit.jupiter.api.Assertions.assertEquals("test_value", localFallbackCache.get("test_key").get());
+    }
+
+    @Test
+    public void testConversationsAndCampaignsCachingAndEviction() throws Exception {
+        if (cacheManager != null) {
+            for (String cacheName : cacheManager.getCacheNames()) {
+                org.springframework.cache.Cache cache = cacheManager.getCache(cacheName);
+                if (cache != null) cache.clear();
+            }
+        }
+
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                999888L,
+                "List Cache Lead",
+                "list_cache",
+                "+12345678",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        // Fetch conversations list
+        mockMvc.perform(get("/api/v1/conversations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)));
+
+        // Mutate: Send manual message to trigger eviction
+        SendMessageRequestDto request = new SendMessageRequestDto("Hello!");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/messages", convId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // Save a campaign
+        com.eneik.generated.domain.Campaign campaign = new com.eneik.generated.domain.Campaign(
+                UUID.randomUUID().toString(),
+                "Outreach Campaign",
+                "{Hi|Hello}",
+                "Prompt",
+                "Persona",
+                "Goals",
+                "Tone",
+                "FAQs",
+                "Rules"
+        );
+        campaignService.saveCampaign(campaign);
+
+        // Fetch campaigns list to trigger caching
+        mockMvc.perform(get("/api/v1/campaigns"))
+                .andExpect(status().isOk());
+
+        if (cacheManager != null) {
+            org.springframework.cache.Cache campaignsCache = cacheManager.getCache(CacheConstants.CAMPAIGNS);
+            org.springframework.cache.Cache campaignByIdCache = cacheManager.getCache(CacheConstants.CAMPAIGN_BY_ID);
+
+            java.util.Optional<com.eneik.generated.domain.Campaign> cachedCampaignOpt = campaignService.getCampaign(campaign.getId());
+            org.junit.jupiter.api.Assertions.assertTrue(cachedCampaignOpt.isPresent());
+
+            // Check details cache is populated
+            org.junit.jupiter.api.Assertions.assertNotNull(campaignByIdCache.get(campaign.getId()));
+
+            // Mutate campaign -> evicts cache
+            campaign.setName("Updated campaign name");
+            campaignService.saveCampaign(campaign);
+
+            // Cache should be evicted now
+            org.junit.jupiter.api.Assertions.assertNull(campaignByIdCache.get(campaign.getId()));
+        }
     }
 }
