@@ -4,10 +4,14 @@ import com.eneik.generated.domain.TgAccount;
 import com.eneik.generated.repository.TgAccountRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TelegramSessionHealthMonitorService {
@@ -15,12 +19,12 @@ public class TelegramSessionHealthMonitorService {
     private static final Logger log = LoggerFactory.getLogger(TelegramSessionHealthMonitorService.class);
 
     private final TgAccountRepository tgAccountRepository;
-    private final TelegramAccountMonitorService telegramAccountMonitorService;
+    private final TelegramSessionHealthUpdateHelper sessionHealthUpdateHelper;
 
     public TelegramSessionHealthMonitorService(TgAccountRepository tgAccountRepository,
-                                               TelegramAccountMonitorService telegramAccountMonitorService) {
+                                               TelegramSessionHealthUpdateHelper sessionHealthUpdateHelper) {
         this.tgAccountRepository = tgAccountRepository;
-        this.telegramAccountMonitorService = telegramAccountMonitorService;
+        this.sessionHealthUpdateHelper = sessionHealthUpdateHelper;
     }
 
     /**
@@ -38,33 +42,62 @@ public class TelegramSessionHealthMonitorService {
      */
     @Scheduled(cron = "${telegram.health.monitor.cron:0 0/15 * * * ?}")
     public void runSessionHealthCheck() {
-        log.info("Starting periodic Telegram session health check.");
+        String runTraceId = UUID.randomUUID().toString();
+        log.info("[Run Trace ID: {}] Starting periodic Telegram session health check.", runTraceId);
+
         List<TgAccount> accounts = tgAccountRepository.findAll();
 
         for (TgAccount account : accounts) {
             String currentStatus = account.getStatus();
+            Long accountId = account.getId();
 
-            // Skip verification if already marked as "Permanent Ban" (case-insensitive)
-            if ("Permanent Ban".equalsIgnoreCase(currentStatus)) {
-                log.info("Skipping session integrity check for account ID: {} (Phone: {}) because it is already marked as Permanent Ban.",
-                        account.getId(), account.getPhoneNumber());
-                continue;
-            }
+            // Set logging context with trace ID and account ID
+            MDC.put("traceId", runTraceId);
+            MDC.put("accountId", String.valueOf(accountId));
 
             try {
+                // Skip verification if already marked as "Permanent Ban" (case-insensitive)
+                if ("Permanent Ban".equalsIgnoreCase(currentStatus)) {
+                    log.info("[Trace ID: {}, Account ID: {}] Skipping session integrity check because it is already marked as Permanent Ban.",
+                            runTraceId, accountId);
+                    continue;
+                }
+
                 String validatedStatus = verifySessionIntegrity(account);
-                telegramAccountMonitorService.updateAccountStatus(account.getId(), validatedStatus);
+
+                if (validatedStatus.equalsIgnoreCase(currentStatus)) {
+                    log.info("[Trace ID: {}, Account ID: {}] Account is already in status '{}'. No update required.",
+                            runTraceId, accountId, currentStatus);
+                    continue;
+                }
+
+                // Execute atomically-guarded database update directly using repository
+                int updatedCount = sessionHealthUpdateHelper.updateStatusGuarded(
+                        accountId, validatedStatus, currentStatus, LocalDateTime.now());
+
+                if (updatedCount == 0) {
+                    log.warn("[Trace ID: {}, Account ID: {}] Guarded status update failed (concurrency detected, status changed from '{}' concurrently).",
+                            runTraceId, accountId, currentStatus);
+                } else {
+                    log.info("[Trace ID: {}, Account ID: {}] Successfully updated status from '{}' to '{}'.",
+                            runTraceId, accountId, currentStatus, validatedStatus);
+                }
+
             } catch (TemporaryNetworkException e) {
-                log.warn("Temporary network failure encountered during session check for account ID: {} (Phone: {}). Retaining previous status: '{}'.",
-                        account.getId(), account.getPhoneNumber(), currentStatus, e);
+                log.warn("[Trace ID: {}, Account ID: {}] Temporary network failure encountered during session check. Retaining previous status: '{}'.",
+                        runTraceId, accountId, currentStatus, e);
                 // Retain previous status and do not write to the DB. Will retry on next cycle.
             } catch (Exception e) {
-                log.error("Failed to execute session health check for account ID: {} (Phone: {}).",
-                        account.getId(), account.getPhoneNumber(), e);
+                log.error("[Trace ID: {}, Account ID: {}] Failed to execute session health check.",
+                        runTraceId, accountId, e);
+            } finally {
+                // Clear logging context
+                MDC.remove("traceId");
+                MDC.remove("accountId");
             }
         }
 
-        log.info("Finished periodic Telegram session health check.");
+        log.info("[Run Trace ID: {}] Finished periodic Telegram session health check.", runTraceId);
     }
 
     /**
@@ -99,5 +132,24 @@ public class TelegramSessionHealthMonitorService {
         }
 
         return "Active";
+    }
+}
+
+/**
+ * Transactional helper for executing atomically-guarded database updates.
+ * Exposes a separate bean boundaries to allow proper Spring transaction management.
+ */
+@Service
+class TelegramSessionHealthUpdateHelper {
+
+    private final TgAccountRepository tgAccountRepository;
+
+    public TelegramSessionHealthUpdateHelper(TgAccountRepository tgAccountRepository) {
+        this.tgAccountRepository = tgAccountRepository;
+    }
+
+    @Transactional
+    public int updateStatusGuarded(Long id, String newStatus, String expectedOldStatus, LocalDateTime updatedAt) {
+        return tgAccountRepository.updateStatusGuarded(id, newStatus, expectedOldStatus, updatedAt);
     }
 }
