@@ -74,24 +74,32 @@ public class CacheIntegrationTest {
         assertTrue(campaignService.getCampaign(id).isPresent());
 
         // Check cache is populated
-        Cache cache = cacheManager.getCache(CacheConstants.CACHE_CAMPAIGN_BY_ID);
+        Cache cache = cacheManager.getCache(CacheConstants.CAMPAIGN_BY_ID);
         assertNotNull(cache);
+        System.out.println("Cache class: " + cache.getClass().getName());
+        System.out.println("Cache native map: " + cache.getNativeCache());
         Cache.ValueWrapper wrapper = cache.get(id);
+        if (wrapper == null) {
+            System.out.println("Cache wrapper is null for id: " + id);
+        } else {
+            System.out.println("Cache wrapper holds: " + wrapper.get());
+        }
         assertNotNull(wrapper);
         assertNotNull(wrapper.get());
 
         // Fetch list to populate campaigns list cache
         assertFalse(campaignService.getAllCampaigns().isEmpty());
-        Cache listCache = cacheManager.getCache(CacheConstants.CACHE_CAMPAIGNS);
+        Cache listCache = cacheManager.getCache(CacheConstants.CAMPAIGNS);
         assertNotNull(listCache);
-        assertNotNull(listCache.get("all"));
+        Object campaignsKey = org.springframework.cache.interceptor.SimpleKey.EMPTY;
+        assertNotNull(listCache.get(campaignsKey));
 
         // Save campaign again (or update) to trigger eviction
         campaignService.saveCampaign(campaign);
 
         // Check cache is evicted
         assertNull(cache.get(id));
-        assertNull(listCache.get("all"));
+        assertNull(listCache.get(campaignsKey));
     }
 
     @Test
@@ -113,15 +121,15 @@ public class CacheIntegrationTest {
         // Populate conversations cache
         assertFalse(inboxService.getConversations("ALL", null, 0, 10).isEmpty());
 
-        Cache convCache = cacheManager.getCache(CacheConstants.CACHE_CONVERSATIONS);
+        Cache convCache = cacheManager.getCache(CacheConstants.CONVERSATIONS);
         assertNotNull(convCache);
-        String convKey = "ALL__0_10";
+        Object convKey = new org.springframework.cache.interceptor.SimpleKey("ALL", null, 0, 10);
         assertNotNull(convCache.get(convKey));
 
         // Populate messages cache with correct limit=50 to satisfy caching condition
         inboxService.getMessages(convId, 50, null);
 
-        Cache msgCache = cacheManager.getCache(CacheConstants.CACHE_MESSAGES);
+        Cache msgCache = cacheManager.getCache(CacheConstants.MESSAGES);
         assertNotNull(msgCache);
         assertNotNull(msgCache.get(convId));
 
@@ -130,7 +138,7 @@ public class CacheIntegrationTest {
 
         // Check evicted
         assertNull(msgCache.get(convId));
-        assertNotNull(convCache.get(convKey)); // conversations list caching remains active until TTL expiration
+        assertNull(convCache.get(convKey)); // conversations list caching is evicted programmatically to reflect fresh CRM updates
     }
 
     @Test
@@ -142,7 +150,7 @@ public class CacheIntegrationTest {
             ObjectMapper.DefaultTyping.NON_FINAL,
             JsonTypeInfo.As.PROPERTY
         );
-        objectMapper.registerModule(new com.eneik.generated.CacheConfig.PageJacksonModule());
+        objectMapper.registerModule(new com.eneik.generated.CacheConfig.PageModule());
         objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 

@@ -1,16 +1,19 @@
 package com.eneik.generated.leadgen.service;
 
+import com.eneik.generated.config.CacheConstants;
 import com.eneik.generated.leadgen.model.Conversation;
 import com.eneik.generated.leadgen.model.ConversationMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.eneik.generated.leadgen.repository.ConversationMessageRepository;
 import com.eneik.generated.leadgen.repository.ConversationRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import com.eneik.generated.config.CacheConstants;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +23,8 @@ import java.util.UUID;
 
 @Service
 public class InboxService {
+
+    private static final Logger log = LoggerFactory.getLogger(InboxService.class);
 
     private final ConversationRepository conversationRepository;
     private final ConversationMessageRepository conversationMessageRepository;
@@ -37,7 +42,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = CacheConstants.CACHE_CONVERSATIONS, key = "#status + '_' + (#assignedAgentId != null ? #assignedAgentId : '') + '_' + #page + '_' + #limit")
+    @Cacheable(value = CacheConstants.CONVERSATIONS)
     public Page<Conversation> getConversations(String status, String assignedAgentId, int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
 
@@ -56,7 +61,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = CacheConstants.CACHE_MESSAGES, key = "#conversationId", condition = "#beforeMessageId == null && #limit == 50")
+    @Cacheable(value = CacheConstants.MESSAGES, key = "#conversationId", condition = "#beforeMessageId == null")
     public List<ConversationMessage> getMessages(String conversationId, int limit, String beforeMessageId) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "sentAt"));
         if (beforeMessageId != null && !beforeMessageId.trim().isEmpty()) {
@@ -67,6 +72,10 @@ public class InboxService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = CacheConstants.MESSAGES, key = "#conversationId"),
+        @CacheEvict(value = CacheConstants.CONVERSATIONS, allEntries = true)
+    })
     public ConversationMessage sendManualMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -85,7 +94,6 @@ public class InboxService {
         message.setSentAt(now);
         message.setSenderName("Human Agent");
         ConversationMessage savedMessage = conversationMessageRepository.save(message);
-        evictConversationMessagesCache(conversationId);
 
         // 3. Update the conversation state (mark as ESCALATED/ACTIVE, update last turn timestamp)
         // Manual message automatically marks active/handled status
@@ -93,6 +101,8 @@ public class InboxService {
         conversation.setStatus("PAUSED");
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
+
+        evictConversationCaches();
 
         return savedMessage;
     }
@@ -103,6 +113,10 @@ public class InboxService {
      * the lead reply is saved but the AI ignores it (no automated AI response is added).
      */
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = CacheConstants.MESSAGES, key = "#conversationId"),
+        @CacheEvict(value = CacheConstants.CONVERSATIONS, allEntries = true)
+    })
     public ConversationMessage receiveLeadMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -153,16 +167,17 @@ public class InboxService {
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
 
-        evictConversationMessagesCache(conversationId);
+        evictConversationCaches();
 
         return savedLeadMessage;
     }
 
-    private void evictConversationMessagesCache(String conversationId) {
+    public void evictConversationCaches() {
         if (cacheManager != null) {
-            org.springframework.cache.Cache cache = cacheManager.getCache(CacheConstants.CACHE_MESSAGES);
+            org.springframework.cache.Cache cache = cacheManager.getCache(CacheConstants.CONVERSATIONS);
             if (cache != null) {
-                cache.evict(conversationId);
+                cache.clear();
+                log.info("Actively and immediately cleared conversations list cache programmatically.");
             }
         }
     }

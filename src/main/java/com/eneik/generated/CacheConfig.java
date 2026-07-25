@@ -1,13 +1,17 @@
 package com.eneik.generated;
 
+import com.eneik.generated.config.CacheConstants;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.WritableTypeId;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
@@ -19,16 +23,16 @@ import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,54 +51,41 @@ public class CacheConfig implements CachingConfigurer {
             connectionFactory.getConnection().ping();
             log.info("Redis connection successful. Creating RedisCacheManager.");
 
-            // Create specialized ObjectMapper for polymorphic JSON caching
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper mapper = new ObjectMapper();
 
-            // Setup polymorphic default typing for polymorphic deserialization
-            objectMapper.activateDefaultTyping(
-                LaissezFaireSubTypeValidator.instance,
-                ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY
+            BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                    .allowIfSubType("com.eneik.generated")
+                    .allowIfSubType("org.springframework.data")
+                    .allowIfSubType("java.util")
+                    .build();
+
+            mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
+
+            mapper.registerSubtypes(
+                    new NamedType(com.eneik.generated.leadgen.model.Conversation.class, "Conversation"),
+                    new NamedType(com.eneik.generated.leadgen.model.ConversationMessage.class, "ConversationMessage"),
+                    new NamedType(com.eneik.generated.domain.Campaign.class, "Campaign"),
+                    new NamedType(org.springframework.data.domain.PageImpl.class, "PageImpl")
             );
 
-            // Register custom Page serializer/deserializer to handle Spring Data PageImpl safely
-            objectMapper.registerModule(new PageJacksonModule());
+            mapper.registerModule(new PageModule());
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-            // Configure Java 8 Date/Time support to handle OffsetDateTime & LocalDateTime in JSON
-            objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-            objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            GenericJackson2JsonRedisSerializer jacksonSerializer = new GenericJackson2JsonRedisSerializer(mapper);
 
-            org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer jsonSerializer =
-                    new org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer(objectMapper);
+            RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+                    .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jacksonSerializer));
 
-            org.springframework.data.redis.cache.RedisCacheConfiguration defaultCacheConfig =
-                    org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
-                            .entryTtl(java.time.Duration.ofMinutes(30))
-                            .serializeValuesWith(org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer));
-
-            java.util.Map<String, org.springframework.data.redis.cache.RedisCacheConfiguration> initialCacheConfigurations = new java.util.HashMap<>();
-
-            // Short 10-second TTL for conversations to allow fast dynamic updates without thrashing eviction
-            initialCacheConfigurations.put(com.eneik.generated.config.CacheConstants.CACHE_CONVERSATIONS, org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
-                    .entryTtl(java.time.Duration.ofSeconds(10))
-                    .serializeValuesWith(org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)));
-
-            // 5-minute TTL for messages
-            initialCacheConfigurations.put(com.eneik.generated.config.CacheConstants.CACHE_MESSAGES, org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
-                    .entryTtl(java.time.Duration.ofMinutes(5))
-                    .serializeValuesWith(org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)));
-
-            // 1-hour TTL for campaigns
-            initialCacheConfigurations.put(com.eneik.generated.config.CacheConstants.CACHE_CAMPAIGNS, org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
-                    .entryTtl(java.time.Duration.ofHours(1))
-                    .serializeValuesWith(org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)));
-            initialCacheConfigurations.put(com.eneik.generated.config.CacheConstants.CACHE_CAMPAIGN_BY_ID, org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
-                    .entryTtl(java.time.Duration.ofHours(1))
-                    .serializeValuesWith(org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)));
+            java.util.Map<String, RedisCacheConfiguration> cacheConfigs = new java.util.HashMap<>();
+            cacheConfigs.put(CacheConstants.CONVERSATIONS, defaultCacheConfig.entryTtl(java.time.Duration.ofSeconds(10)));
+            cacheConfigs.put(CacheConstants.MESSAGES, defaultCacheConfig.entryTtl(java.time.Duration.ofMinutes(5)));
+            cacheConfigs.put(CacheConstants.CAMPAIGNS, defaultCacheConfig.entryTtl(java.time.Duration.ofHours(1)));
+            cacheConfigs.put(CacheConstants.CAMPAIGN_BY_ID, defaultCacheConfig.entryTtl(java.time.Duration.ofHours(1)));
 
             redisCacheManager = RedisCacheManager.builder(connectionFactory)
                     .cacheDefaults(defaultCacheConfig)
-                    .withInitialCacheConfigurations(initialCacheConfigurations)
+                    .withInitialCacheConfigurations(cacheConfigs)
                     .build();
         } catch (Exception e) {
             log.warn("Redis connection failed during bootstrap. Caching layer will fallback to in-memory mode. Error: {}", e.getMessage(), e);
@@ -126,65 +117,62 @@ public class CacheConfig implements CachingConfigurer {
         return new LoggingCacheErrorHandler();
     }
 
-    public static class PageJacksonModule extends com.fasterxml.jackson.databind.module.SimpleModule {
-        @SuppressWarnings("unchecked")
-        public PageJacksonModule() {
-            addSerializer(Page.class, new PageSerializer());
-            addSerializer(PageImpl.class, new PageSerializer());
-            addDeserializer(Page.class, new PageDeserializer());
-            addDeserializer((Class) PageImpl.class, (JsonDeserializer) new PageDeserializer());
-        }
-    }
-
-    public static class PageSerializer extends JsonSerializer<Page> {
+    public static class PageImplDeserializer extends JsonDeserializer<PageImpl<?>> {
         @Override
-        public void serialize(Page value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeStartObject();
-            writePageFields(value, gen, serializers);
-            gen.writeEndObject();
-        }
-
-        @Override
-        public void serializeWithType(Page value, JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            WritableTypeId typeIdDef = typeSer.writeTypePrefix(gen,
-                    typeSer.typeId(value, JsonToken.START_OBJECT));
-            writePageFields(value, gen, serializers);
-            typeSer.writeTypeSuffix(gen, typeIdDef);
-        }
-
-        private void writePageFields(Page value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeNumberField("totalElements", value.getTotalElements());
-            gen.writeNumberField("totalPages", value.getTotalPages());
-            gen.writeNumberField("page", value.getNumber());
-            gen.writeNumberField("size", value.getSize());
-            gen.writeFieldName("content");
-            serializers.defaultSerializeValue(value.getContent(), gen);
-        }
-    }
-
-    public static class PageDeserializer extends JsonDeserializer<Page> {
-        @Override
-        public Page deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-            JsonNode node = p.getCodec().readTree(p);
-            long totalElements = node.get("totalElements").asLong();
-            int page = node.get("page").asInt();
-            int size = node.get("size").asInt();
+        public PageImpl<?> deserialize(JsonParser p, DeserializationContext ctxt) throws java.io.IOException {
+            ObjectCodec codec = p.getCodec();
+            JsonNode node = codec.readTree(p);
 
             JsonNode contentNode = node.get("content");
-            List<Object> content = new ArrayList<>();
+            java.util.List<Object> content = new java.util.ArrayList<>();
             if (contentNode != null) {
                 // Handle polymorphic list type wrappers (e.g. ["java.util.Collections$UnmodifiableRandomAccessList", [ ... ]])
                 if (contentNode.isArray() && contentNode.size() == 2 && contentNode.get(0).isTextual() && contentNode.get(1).isArray()) {
                     contentNode = contentNode.get(1);
                 }
                 if (contentNode.isArray()) {
-                    for (JsonNode item : contentNode) {
-                        content.add(p.getCodec().treeToValue(item, Object.class));
+                    for (JsonNode elem : contentNode) {
+                        JsonParser elemParser = elem.traverse(codec);
+                        if (elemParser.getCurrentToken() == null) {
+                            elemParser.nextToken();
+                        }
+                        content.add(codec.readValue(elemParser, Object.class));
                     }
                 }
             }
 
-            return new PageImpl<>(content, PageRequest.of(page, size > 0 ? size : 10), totalElements);
+            long total = 0;
+            if (node.has("totalElements")) {
+                total = node.get("totalElements").asLong();
+            } else if (node.has("total")) {
+                total = node.get("total").asLong();
+            } else {
+                total = content.size();
+            }
+
+            int number = 0;
+            if (node.has("number")) {
+                number = node.get("number").asInt();
+            } else if (node.has("page")) {
+                number = node.get("page").asInt();
+            }
+
+            int size = 20;
+            if (node.has("size")) {
+                size = node.get("size").asInt();
+            }
+            if (size <= 0) {
+                size = Math.max(1, content.size());
+            }
+
+            return new PageImpl<>(content, PageRequest.of(number, size), total);
+        }
+    }
+
+    public static class PageModule extends SimpleModule {
+        public PageModule() {
+            addDeserializer(Page.class, (JsonDeserializer) new PageImplDeserializer());
+            addDeserializer(PageImpl.class, (JsonDeserializer) new PageImplDeserializer());
         }
     }
 

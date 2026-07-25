@@ -1,5 +1,6 @@
 <script>
   import { tick, onMount, onDestroy } from 'svelte';
+  import StatusBadge from './StatusBadge.svelte';
 
   // Core App Views
   let currentTab = "inbox"; // "inbox" | "onboard" | "ingest"
@@ -55,7 +56,7 @@
   // Reactivity Calculations
   $: activeChat = chats.find(c => c.id === selectedChatId);
   $: escalatedCount = chats.filter(c => c.status === "ESCALATED").length;
-  $: activeDealsCount = chats.filter(c => c.status !== "RESOLVED").length;
+  $: activeDealsCount = chats.filter(c => c.status !== "RESOLVED" && c.status !== "CLOSED" && c.status !== "CONVERTED").length;
 
   $: filteredChats = chats.filter(chat => {
     // Search filter
@@ -71,7 +72,7 @@
     // Category filter
     if (filterType === "escalated") return chat.status === "ESCALATED";
     if (filterType === "regular") return chat.status === "ACTIVE" || chat.status === "PAUSED";
-    if (filterType === "closed") return chat.status === "RESOLVED";
+    if (filterType === "closed") return chat.status === "RESOLVED" || chat.status === "CLOSED" || chat.status === "CONVERTED";
     return true;
   });
 
@@ -90,7 +91,9 @@
           await loadMessages(selectedChatId, true);
         } else if (chats.length > 0 && !selectedChatId) {
           // Default to the first chat on desktop to avoid empty states
-          await selectChat(chats[0].id);
+          if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+            await selectChat(chats[0].id);
+          }
         }
       } else {
         console.error("Failed to load conversations:", res.statusText);
@@ -766,22 +769,9 @@
                       </span>
                     </div>
 
-                    <div class="flex items-center gap-2 mb-1.5">
+                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
                       <span class="text-xs font-medium text-slate-500">@{chat.leadUsername || "no_username"}</span>
-                      {#if chat.status === 'ESCALATED'}
-                        <span class="bg-yellow-200 text-yellow-900 border border-yellow-400 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider flex items-center gap-0.5">
-                          <span class="material-symbols-outlined text-[10px]">auto_awesome</span>
-                          AI Hand-off
-                        </span>
-                      {:else if chat.status === 'PAUSED'}
-                        <span class="bg-blue-50 text-blue-600 border border-blue-200 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
-                          Paused AI
-                        </span>
-                      {:else if chat.status === 'RESOLVED'}
-                        <span class="bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">
-                          Resolved
-                        </span>
-                      {/if}
+                      <StatusBadge status={chat.status} />
                     </div>
                   </div>
                 </button>
@@ -808,14 +798,9 @@
                   {(activeChat.leadName || activeChat.leadUsername || "U").charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <h2 class="font-bold text-sm text-slate-900">{activeChat.leadName || activeChat.leadUsername || "Lead"}</h2>
-                    {#if activeChat.status === 'ESCALATED'}
-                      <span class="bg-yellow-100 text-yellow-800 border border-yellow-300 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5 animate-pulse">
-                        <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">warning</span>
-                        AI Escalated
-                      </span>
-                    {/if}
+                    <StatusBadge status={activeChat.status} size="md" />
                   </div>
                   <p class="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-md">@{activeChat.leadUsername || "no_username"} • {activeChat.leadPhone || "No Phone"}</p>
                 </div>
