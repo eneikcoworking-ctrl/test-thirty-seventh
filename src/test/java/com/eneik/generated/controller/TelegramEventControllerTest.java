@@ -45,11 +45,22 @@ public class TelegramEventControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private org.springframework.cache.CacheManager cacheManager;
+
     @BeforeEach
     public void setup() {
         conversationMessageRepository.deleteAll();
         conversationRepository.deleteAll();
         tgAccountRepository.deleteAll();
+        if (cacheManager != null) {
+            for (String name : cacheManager.getCacheNames()) {
+                org.springframework.cache.Cache cache = cacheManager.getCache(name);
+                if (cache != null) {
+                    cache.clear();
+                }
+            }
+        }
     }
 
     @Test

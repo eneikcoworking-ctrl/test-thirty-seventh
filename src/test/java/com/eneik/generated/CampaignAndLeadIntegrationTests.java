@@ -33,10 +33,21 @@ public class CampaignAndLeadIntegrationTests {
     @Autowired
     private LeadRepository leadRepository;
 
+    @Autowired
+    private org.springframework.cache.CacheManager cacheManager;
+
     @BeforeEach
     public void setUp() {
         leadRepository.deleteAll();
         campaignRepository.deleteAll();
+        if (cacheManager != null) {
+            for (String name : cacheManager.getCacheNames()) {
+                org.springframework.cache.Cache cache = cacheManager.getCache(name);
+                if (cache != null) {
+                    cache.clear();
+                }
+            }
+        }
     }
 
     @Test
