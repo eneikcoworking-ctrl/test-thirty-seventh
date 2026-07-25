@@ -1,0 +1,94 @@
+{
+  "epics": [
+    {
+      "existingEpicId": null,
+      "title": "Resolve dispatch service rejection-revision loop",
+      "jtbd": "When a task gets stuck in a rejection cycle, I want the system to break the infinite loop, so that processing resources are not wasted and the pipeline remains unblocked.",
+      "kanoClass": "Must-Be",
+      "cynefinDomain": "complicated",
+      "sixSigmaMetric": "Reduce infinite rejection loop incidents from current baseline to 0 per 1000 tasks",
+      "tocConstraintRef": "Task evaluation pipeline throughput",
+      "sourceIndex": 0,
+      "requirements": [
+        "R1: Patch JulesDispatchService to detect and break infinite rejection-revision loops for a single task."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Patch dispatch service loop breaker",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing the loop breaker for this epic, I want to enforce a maximum retry threshold on rejected tasks, so that the dispatch service can transition them to a terminal state.",
+          "acceptanceCriteria": "Given an active JulesDispatchService monitoring task statuses, When a task enters a review-rejected loop for more than a set threshold of iterations, Then the service must transition the task to a terminal state to break the loop.\nGiven a task that has been rejected fewer times than the threshold, When the service evaluates its status, Then the service should process it normally without terminating.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "JulesDispatchService retry logic",
+          "sixSigmaMetric": "Reduce stuck tasks in revision loops to 0",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "a79021eb-3135-4020-aeac-d3ae3d879746",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: Implement a background event listener that monitors connected accounts for incoming responses and triggers AI evaluation."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement inbound message background listener",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing the inbound listener for this epic, I want to build a background worker to detect messages in real-time, so that HTTP endpoint simulation is no longer required.",
+          "acceptanceCriteria": "Given a background worker monitoring connected Telegram accounts, When a new inbound message is received from a lead, Then the worker must detect the message and trigger the AI evaluation engine immediately.\nGiven the background worker is running, When no new messages are received, Then the worker should remain idle and consume minimal resources.\nGiven a new inbound message that is malformed or lacks necessary context, When the worker receives it, Then it should log the error and continue monitoring without crashing.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Inbound message polling latency",
+          "sixSigmaMetric": "Reduce lead response detection latency to under 500ms",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    },
+    {
+      "existingEpicId": "ddd91e1e-bcd1-4579-96a6-82f6afdfe950",
+      "title": null,
+      "jtbd": null,
+      "kanoClass": null,
+      "cynefinDomain": null,
+      "sixSigmaMetric": null,
+      "tocConstraintRef": null,
+      "sourceIndex": 1,
+      "requirements": [
+        "R1: Implement a periodic background session health monitor to track and update account statuses."
+      ],
+      "coverageComplete": true,
+      "slices": [
+        {
+          "title": "Implement session health monitor worker",
+          "roleTag": "BARCAN-TAG-02",
+          "jtbd": "When implementing the health monitor for this epic, I want to periodically verify session validity, so that invalid sessions are identified before dispatching messages.",
+          "acceptanceCriteria": "Given active Telegram account sessions in the database, When the system executes the periodic background check, Then it must verify session integrity and update the account status to Active, Temporary Spam-Block, Permanent Ban, or Re-authorization Required.\nGiven an account session that is already marked as Permanent Ban, When the background check runs, Then the system should skip re-verification for that session.\nGiven a temporary network failure during verification, When the check attempts to validate the session, Then the system should retain the previous status and retry on the next cycle.",
+          "leanValue": "essential",
+          "cynefinDomain": "complicated",
+          "tocConstraintRef": "Session validity check frequency",
+          "sixSigmaMetric": "Reduce dispatch attempts to invalid sessions to 0%",
+          "hasUi": false,
+          "requirementRefs": [
+            "R1"
+          ]
+        }
+      ]
+    }
+  ]
+}
