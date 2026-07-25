@@ -111,14 +111,34 @@ public class InboxService {
 
         // Given a paused dialogue, When a lead replies, Then the AI ignores the reply.
         if ("ACTIVE".equalsIgnoreCase(conversation.getStatus())) {
-            ConversationMessage aiMessage = new ConversationMessage();
-            aiMessage.setId(UUID.randomUUID().toString());
-            aiMessage.setConversationId(conversationId);
-            aiMessage.setText("AI Automated Response to: " + text);
-            aiMessage.setSenderType("AI_AGENT");
-            aiMessage.setSentAt(now.plusSeconds(1));
-            aiMessage.setSenderName("AI Bot");
-            conversationMessageRepository.save(aiMessage);
+            boolean stopTriggered = false;
+
+            if (text != null) {
+                String lowerText = text.toLowerCase();
+                if (lowerText.contains("stop") || lowerText.contains("unsubscribe") || lowerText.contains("human")) {
+                    stopTriggered = true;
+                }
+            }
+
+            if (!stopTriggered) {
+                long aiTurns = conversationMessageRepository.countByConversationIdAndSenderType(conversationId, "AI_AGENT");
+                if (aiTurns >= 5) {
+                    stopTriggered = true;
+                }
+            }
+
+            if (stopTriggered) {
+                conversation.setStatus("ESCALATED");
+            } else {
+                ConversationMessage aiMessage = new ConversationMessage();
+                aiMessage.setId(UUID.randomUUID().toString());
+                aiMessage.setConversationId(conversationId);
+                aiMessage.setText("AI Automated Response to: " + text);
+                aiMessage.setSenderType("AI_AGENT");
+                aiMessage.setSentAt(now.plusSeconds(1));
+                aiMessage.setSenderName("AI Bot");
+                conversationMessageRepository.save(aiMessage);
+            }
         }
 
         conversation.setLastMessageAt(now);
