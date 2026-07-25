@@ -1,5 +1,17 @@
 package com.eneik.generated;
 
+import com.eneik.generated.config.CacheConstants;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
@@ -11,8 +23,14 @@ import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
 
 import java.util.Collection;
 import java.util.concurrent.Callable;
@@ -33,16 +51,41 @@ public class CacheConfig implements CachingConfigurer {
             connectionFactory.getConnection().ping();
             log.info("Redis connection successful. Creating RedisCacheManager.");
 
-            org.springframework.data.redis.cache.RedisCacheConfiguration defaultCacheConfig =
-                    org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig();
+            ObjectMapper mapper = new ObjectMapper();
 
-            org.springframework.data.redis.cache.RedisCacheConfiguration messagesCacheConfig =
-                    org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
-                            .entryTtl(java.time.Duration.ofMinutes(10));
+            BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                    .allowIfSubType("com.eneik.generated")
+                    .allowIfSubType("org.springframework.data")
+                    .allowIfSubType("java.util")
+                    .build();
+
+            mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
+
+            mapper.registerSubtypes(
+                    new NamedType(com.eneik.generated.leadgen.model.Conversation.class, "Conversation"),
+                    new NamedType(com.eneik.generated.leadgen.model.ConversationMessage.class, "ConversationMessage"),
+                    new NamedType(com.eneik.generated.domain.Campaign.class, "Campaign"),
+                    new NamedType(org.springframework.data.domain.PageImpl.class, "PageImpl")
+            );
+
+            mapper.registerModule(new PageModule());
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            GenericJackson2JsonRedisSerializer jacksonSerializer = new GenericJackson2JsonRedisSerializer(mapper);
+
+            RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+                    .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jacksonSerializer));
+
+            java.util.Map<String, RedisCacheConfiguration> cacheConfigs = new java.util.HashMap<>();
+            cacheConfigs.put(CacheConstants.CONVERSATIONS, defaultCacheConfig.entryTtl(java.time.Duration.ofSeconds(10)));
+            cacheConfigs.put(CacheConstants.MESSAGES, defaultCacheConfig.entryTtl(java.time.Duration.ofMinutes(5)));
+            cacheConfigs.put(CacheConstants.CAMPAIGNS, defaultCacheConfig.entryTtl(java.time.Duration.ofHours(1)));
+            cacheConfigs.put(CacheConstants.CAMPAIGN_BY_ID, defaultCacheConfig.entryTtl(java.time.Duration.ofHours(1)));
 
             redisCacheManager = RedisCacheManager.builder(connectionFactory)
                     .cacheDefaults(defaultCacheConfig)
-                    .withCacheConfiguration("messages", messagesCacheConfig)
+                    .withInitialCacheConfigurations(cacheConfigs)
                     .build();
         } catch (Exception e) {
             log.warn("Redis connection failed during bootstrap. Caching layer will fallback to in-memory mode. Error: {}", e.getMessage(), e);
@@ -72,6 +115,59 @@ public class CacheConfig implements CachingConfigurer {
     @Bean
     public CacheErrorHandler errorHandler() {
         return new LoggingCacheErrorHandler();
+    }
+
+    public static class PageImplDeserializer extends JsonDeserializer<PageImpl<?>> {
+        @Override
+        public PageImpl<?> deserialize(JsonParser p, DeserializationContext ctxt) throws java.io.IOException {
+            ObjectCodec codec = p.getCodec();
+            JsonNode node = codec.readTree(p);
+
+            JsonNode contentNode = node.get("content");
+            java.util.List<Object> content = new java.util.ArrayList<>();
+            if (contentNode != null && contentNode.isArray()) {
+                for (JsonNode elem : contentNode) {
+                    JsonParser elemParser = elem.traverse(codec);
+                    if (elemParser.getCurrentToken() == null) {
+                        elemParser.nextToken();
+                    }
+                    content.add(codec.readValue(elemParser, Object.class));
+                }
+            }
+
+            long total = 0;
+            if (node.has("totalElements")) {
+                total = node.get("totalElements").asLong();
+            } else if (node.has("total")) {
+                total = node.get("total").asLong();
+            } else {
+                total = content.size();
+            }
+
+            int number = 0;
+            if (node.has("number")) {
+                number = node.get("number").asInt();
+            } else if (node.has("page")) {
+                number = node.get("page").asInt();
+            }
+
+            int size = 20;
+            if (node.has("size")) {
+                size = node.get("size").asInt();
+            }
+            if (size <= 0) {
+                size = Math.max(1, content.size());
+            }
+
+            return new PageImpl<>(content, PageRequest.of(number, size), total);
+        }
+    }
+
+    public static class PageModule extends SimpleModule {
+        public PageModule() {
+            addDeserializer(Page.class, (JsonDeserializer) new PageImplDeserializer());
+            addDeserializer(PageImpl.class, (JsonDeserializer) new PageImplDeserializer());
+        }
     }
 
     public static class LoggingCacheErrorHandler implements CacheErrorHandler {
