@@ -11,4 +11,5 @@ import java.util.List;
 public interface ConversationMessageRepository extends JpaRepository<ConversationMessage, String> {
     List<ConversationMessage> findByConversationId(String conversationId, Pageable pageable);
     List<ConversationMessage> findByConversationIdAndIdLessThan(String conversationId, String id, Pageable pageable);
+    long countByConversationIdAndSenderType(String conversationId, String senderType);
 }

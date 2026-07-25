@@ -214,4 +214,161 @@ public class InboxControllerTest {
         // Verify there is exactly 1 message in the paused dialogue (only the lead message; no AI response)
         assertEquals(1, conversationMessageRepository.findByConversationId(pausedConvId, null).size());
     }
+
+    @Test
+    public void testActiveConversation_WhenStopKeywordUnsubscribeReceived_ChangesToEscalatedAndNoAiReply() throws Exception {
+        // Given an ACTIVE conversation
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                11111L,
+                "Stop Keyword Lead",
+                "stop_l",
+                "+1111111111",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        // When a message with the stop keyword 'unsubscribe' is received
+        SendMessageRequestDto leadRequest = new SendMessageRequestDto("Please unsubscribe me from this list.");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/lead-messages", convId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(leadRequest)))
+                .andExpect(status().isCreated());
+
+        // Then the conversation status is changed to ESCALATED
+        Conversation updatedConv = conversationRepository.findById(convId).orElseThrow();
+        assertEquals("ESCALATED", updatedConv.getStatus());
+
+        // and no AI reply is sent (only the lead's message exists in history)
+        assertEquals(1, conversationMessageRepository.findByConversationId(convId, null).size());
+    }
+
+    @Test
+    public void testActiveConversation_WhenNormalMessageReceived_ProceedsNormally() throws Exception {
+        // Given an ACTIVE conversation
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                22222L,
+                "Normal Lead",
+                "normal_l",
+                "+2222222222",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        // When a message without any stop triggers is received
+        SendMessageRequestDto leadRequest = new SendMessageRequestDto("I want to know more about your service");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/lead-messages", convId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(leadRequest)))
+                .andExpect(status().isCreated());
+
+        // Then conversation status remains ACTIVE
+        Conversation updatedConv = conversationRepository.findById(convId).orElseThrow();
+        assertEquals("ACTIVE", updatedConv.getStatus());
+
+        // Then AI response generation proceeds normally (lead message + AI response = 2 messages)
+        assertEquals(2, conversationMessageRepository.findByConversationId(convId, null).size());
+    }
+
+    @Test
+    public void testEscalatedConversation_WhenStopWordsReceived_StatusUnchangedAndNoAiReply() throws Exception {
+        // Given a conversation already in ESCALATED status
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                33333L,
+                "Escalated Lead",
+                "escalated_l",
+                "+3333333333",
+                "ESCALATED",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        // When a new message with stop words is received
+        SendMessageRequestDto leadRequest = new SendMessageRequestDto("STOP NOW!");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/lead-messages", convId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(leadRequest)))
+                .andExpect(status().isCreated());
+
+        // Then the status remains unchanged (ESCALATED)
+        Conversation updatedConv = conversationRepository.findById(convId).orElseThrow();
+        assertEquals("ESCALATED", updatedConv.getStatus());
+
+        // And no AI reply is triggered (only the lead message exists in history)
+        assertEquals(1, conversationMessageRepository.findByConversationId(convId, null).size());
+    }
+
+    @Test
+    public void testActiveConversation_ReachingExactly5AiTurns_6thMessageBecomesEscalatedAndNoAiReply() throws Exception {
+        // Given a conversation reaching exactly the maximum allowed 5 AI turns
+        String convId = UUID.randomUUID().toString();
+        Conversation conv = new Conversation(
+                convId,
+                44444L,
+                "Turn Limit Lead",
+                "turn_l",
+                "+4444444444",
+                "ACTIVE",
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        conversationRepository.save(conv);
+
+        // Add 5 AI turn messages and some lead messages to simulate history
+        OffsetDateTime baseTime = OffsetDateTime.now().minusHours(1);
+        for (int i = 1; i <= 5; i++) {
+            ConversationMessage leadMsg = new ConversationMessage(
+                    UUID.randomUUID().toString(),
+                    convId,
+                    "Lead message " + i,
+                    "LEAD",
+                    baseTime.plusMinutes(i * 2),
+                    "Turn Limit Lead"
+            );
+            conversationMessageRepository.save(leadMsg);
+
+            ConversationMessage aiMsg = new ConversationMessage(
+                    UUID.randomUUID().toString(),
+                    convId,
+                    "AI Automated Response " + i,
+                    "AI_AGENT",
+                    baseTime.plusMinutes(i * 2 + 1),
+                    "AI Bot"
+            );
+            conversationMessageRepository.save(aiMsg);
+        }
+
+        // Verify there are exactly 5 AI turns currently
+        long aiTurnsBefore = conversationMessageRepository.countByConversationIdAndSenderType(convId, "AI_AGENT");
+        assertEquals(5, aiTurnsBefore);
+
+        // When the lead sends the 6th message
+        SendMessageRequestDto leadRequest = new SendMessageRequestDto("6th message");
+        mockMvc.perform(post("/api/v1/conversations/{conversationId}/lead-messages", convId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(leadRequest)))
+                .andExpect(status().isCreated());
+
+        // Then the status becomes ESCALATED immediately before generating the next AI reply
+        Conversation updatedConv = conversationRepository.findById(convId).orElseThrow();
+        assertEquals("ESCALATED", updatedConv.getStatus());
+
+        // And no AI reply is generated (there are still only 5 AI messages in history)
+        long aiTurnsAfter = conversationMessageRepository.countByConversationIdAndSenderType(convId, "AI_AGENT");
+        assertEquals(5, aiTurnsAfter);
+    }
 }
