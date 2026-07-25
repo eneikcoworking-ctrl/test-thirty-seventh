@@ -48,6 +48,7 @@ public class DispatchServiceIntegrationTest {
         activeAccount = new TgAccount();
         activeAccount.setPhoneNumber("+1234567890");
         activeAccount.setStatus("Active");
+        activeAccount.setDailyDispatchLimit(10);
         activeAccount = tgAccountRepository.save(activeAccount);
 
         // Save a standard Campaign

@@ -23,6 +23,9 @@ public class DialogService {
     private final DialogRepository dialogRepository;
     private final MessageRepository messageRepository;
 
+    private static final long MAX_MESSAGES_LIMIT = 8;
+    private static final String AI_RESPONSE_PREFIX = "AI Automated Response to: ";
+
     @Autowired
     public DialogService(DialogRepository dialogRepository, MessageRepository messageRepository) {
         this.dialogRepository = dialogRepository;
@@ -42,23 +45,18 @@ public class DialogService {
                     return dialogRepository.save(newDialog);
                 });
 
-        // 1. Check existing count of messages in this dialogue session
         long currentCount = messageRepository.countByDialogId(dialog.getId());
-        if (currentCount >= 8) {
-            dialog.setAiState(AiState.STOPPED);
-            dialogRepository.save(dialog);
-            throw new IllegalStateException("Conversation limit reached: back-and-forth message count exceeds 8.");
+        if (currentCount >= MAX_MESSAGES_LIMIT) {
+            dialogRepository.updateAiStateGuarded(dialog.getId(), AiState.STOPPED, AiState.ACTIVE);
+            throw new IllegalStateException("Conversation limit reached: back-and-forth message count exceeds " + MAX_MESSAGES_LIMIT + ".");
         }
 
-        // 2. Save the new message
         Message message = new Message(dialog, text, senderType);
         Message savedMessage = messageRepository.save(message);
 
-        // 3. Re-evaluate count to check if we just hit/exceeded the limit of 8
         long updatedCount = messageRepository.countByDialogId(dialog.getId());
-        if (updatedCount >= 8) {
-            dialog.setAiState(AiState.STOPPED);
-            dialogRepository.save(dialog);
+        if (updatedCount >= MAX_MESSAGES_LIMIT) {
+            dialogRepository.updateAiStateGuarded(dialog.getId(), AiState.STOPPED, AiState.ACTIVE);
         }
 
         return savedMessage;
@@ -72,10 +70,11 @@ public class DialogService {
         Dialog dialog = dialogRepository.findByTelegramChatId(telegramChatId)
                 .orElseThrow(() -> new IllegalArgumentException("Dialog not found with chat id: " + telegramChatId));
 
-        dialog.setAiState(newAiState);
-        Dialog saved = dialogRepository.save(dialog);
-
-        return saved;
+        int updatedCount = dialogRepository.updateAiStateGuarded(dialog.getId(), newAiState, dialog.getAiState());
+        if (updatedCount == 0 && dialog.getAiState() != newAiState) {
+            throw new IllegalStateException("Failed to update AI state due to concurrent modification.");
+        }
+        return dialogRepository.findById(dialog.getId()).get();
     }
 
     /**
@@ -101,5 +100,16 @@ public class DialogService {
             pageable = PageRequest.of(pageable.getPageNumber(), 50, pageable.getSort());
         }
         return dialogRepository.findAll(pageable);
+    }
+
+    public void generateAiResponse(Long dialogId, String userText) {
+        Dialog dialog = dialogRepository.findById(dialogId).orElseThrow(() -> new IllegalArgumentException("Dialog not found"));
+        if (dialog.getAiState() != AiState.ACTIVE) return;
+
+        Message aiResponse = new Message(dialog, AI_RESPONSE_PREFIX + userText, SenderType.AI);
+        messageRepository.save(aiResponse);
+        if (messageRepository.countByDialogId(dialogId) >= MAX_MESSAGES_LIMIT) {
+            dialogRepository.updateAiStateGuarded(dialogId, AiState.STOPPED, AiState.ACTIVE);
+        }
     }
 }
