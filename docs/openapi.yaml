@@ -290,6 +290,109 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/telegram/status-event:
+    post:
+      summary: Receive Telegram Account status event
+      description: |
+        Receives account status events (e.g. spam-block, permanent ban, active re-authorization) from Telegram.
+        Automatically updates the status of the account in the database.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - accountId
+                - status
+              properties:
+                accountId:
+                  type: integer
+                  format: int64
+                  description: The ID of the Telegram account
+                status:
+                  type: string
+                  enum: [Active, Temporary Spam-Block, Permanent Ban, Re-authorization Required]
+                  description: The new health status of the account
+      responses:
+        '200':
+          description: Account status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  accountId:
+                    type: integer
+                  status:
+                    type: string
+        '400':
+          description: Invalid parameters or invalid status transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/telegram/message-event:
+    post:
+      summary: Receive Telegram Inbound Message Event
+      description: |
+        Publishes a background event when a new message is received from a lead,
+        which asynchronously triggers the AI evaluation engine to determine the next turn.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - telegramChatId
+                - leadName
+                - text
+              properties:
+                telegramChatId:
+                  type: integer
+                  format: int64
+                  description: Unique Telegram ID of the chat / lead
+                leadName:
+                  type: string
+                  description: Name of the lead
+                text:
+                  type: string
+                  description: Content of the message
+                leadUsername:
+                  type: string
+                  nullable: true
+                leadPhone:
+                  type: string
+                  nullable: true
+      responses:
+        '202':
+          description: Inbound message event accepted and listener triggered in the background
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  telegramChatId:
+                    type: integer
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     Conversation:
