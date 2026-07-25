@@ -24,6 +24,11 @@ public class TelegramBackgroundEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramBackgroundEventListener.class);
 
+    // Named Constants
+    private static final String MEDIA_TYPE_TEXT = "text";
+    private static final int MAX_TURN_LIMIT = 8;
+    private static final String AI_RESPONSE_PREFIX = "AI Automated Response to: ";
+
     private final TgAccountRepository tgAccountRepository;
     private final DialogRepository dialogRepository;
     private final DialogService dialogService;
@@ -75,76 +80,92 @@ public class TelegramBackgroundEventListener {
             return;
         }
 
-        // Detect empty payload or unsupported media gracefully
-        boolean isEmpty = (text == null || text.trim().isEmpty());
-        boolean isUnsupportedMedia = (mediaType != null && !mediaType.equalsIgnoreCase("text") && !mediaType.isEmpty());
-
-        if (isEmpty || isUnsupportedMedia) {
-            log.error("Failed to process inbound message on chat {}: {} without crashing.",
-                    telegramChatId,
-                    isEmpty ? "empty payload" : "unsupported media type '" + mediaType + "'");
+        if (isPayloadInvalid(text, mediaType)) {
             return;
         }
 
         log.info("Processing inbound message on chat {}: '{}' (media: {})", telegramChatId, text, mediaType);
 
-        boolean processedAny = false;
+        boolean processedCrm = processCrmConversation(telegramChatId, text);
+        boolean processedOutbound = processOutboundDialog(telegramChatId, text);
 
-        // 1. Process for CRM Live Chat (Conversation)
-        Optional<Conversation> convOpt = conversationRepository.findByTelegramChatId(telegramChatId);
-        if (convOpt.isPresent()) {
-            Conversation conversation = convOpt.get();
-            log.info("Found CRM Conversation for chat {}. Triggering InboxService response flow.", telegramChatId);
-            inboxService.receiveLeadMessage(conversation.getId(), text);
-            processedAny = true;
-        }
-
-        // 2. Process for Outbound Dialogue Flow (Dialog)
-        Optional<Dialog> dialogOpt = dialogRepository.findByTelegramChatId(telegramChatId.toString());
-        if (dialogOpt.isPresent()) {
-            Dialog dialog = dialogOpt.get();
-            if (dialog.getAiState() == AiState.ACTIVE) {
-                log.info("Found active outbound Dialog for chat {}. Recording user response and triggering AI next turn.", telegramChatId);
-                try {
-                    dialogService.receiveInboundMessage(telegramChatId.toString(), text, SenderType.USER);
-
-                    // Re-fetch dialog to check if AI state is still ACTIVE after storing the lead response
-                    Optional<Dialog> updatedDialogOpt = dialogRepository.findByTelegramChatId(telegramChatId.toString());
-                    if (updatedDialogOpt.isPresent()) {
-                        Dialog updatedDialog = updatedDialogOpt.get();
-                        if (updatedDialog.getAiState() == AiState.ACTIVE) {
-                            // Generate automated AI response (triggers AI evaluation engine)
-                            Message aiResponse = new Message(updatedDialog, "AI Automated Response to: " + text, SenderType.AI);
-                            messageRepository.save(aiResponse);
-
-                            // Re-evaluate count to check if we hit/exceeded the limit of 8
-                            long updatedCount = messageRepository.countByDialogId(updatedDialog.getId());
-                            if (updatedCount >= 8) {
-                                updatedDialog.setAiState(AiState.STOPPED);
-                                dialogRepository.save(updatedDialog);
-                                log.info("Dialog for chat {} hit turn limit. AI State set to STOPPED.", telegramChatId);
-                            }
-                        }
-                    }
-                    processedAny = true;
-                } catch (Exception e) {
-                    log.error("Failed to process outbound dialog inbound message gracefully: {}", e.getMessage());
-                }
-            } else {
-                log.info("Outbound Dialog for chat {} found but AI state is not ACTIVE (current state: {}). No AI turn triggered.",
-                        telegramChatId, dialog.getAiState());
-                // Still record the message but no AI turn is triggered
-                try {
-                    dialogService.receiveInboundMessage(telegramChatId.toString(), text, SenderType.USER);
-                    processedAny = true;
-                } catch (Exception e) {
-                    log.error("Failed to save inbound message for stopped dialog: {}", e.getMessage());
-                }
-            }
-        }
-
-        if (!processedAny) {
+        if (!processedCrm && !processedOutbound) {
             log.info("No active Conversation or Dialog found in database for Telegram Chat ID: {}", telegramChatId);
+        }
+    }
+
+    private boolean isPayloadInvalid(String text, String mediaType) {
+        boolean isEmpty = (text == null || text.trim().isEmpty());
+        boolean isUnsupportedMedia = (mediaType != null && !mediaType.equalsIgnoreCase(MEDIA_TYPE_TEXT) && !mediaType.isEmpty());
+
+        if (isEmpty || isUnsupportedMedia) {
+            log.error("Failed to process inbound message: {} without crashing.",
+                    isEmpty ? "empty payload" : "unsupported media type '" + mediaType + "'");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean processCrmConversation(Long telegramChatId, String text) {
+        Optional<Conversation> convOpt = conversationRepository.findByTelegramChatId(telegramChatId);
+        if (convOpt.isEmpty()) {
+            return false;
+        }
+        Conversation conversation = convOpt.get();
+        log.info("Found CRM Conversation for chat {}. Triggering InboxService response flow.", telegramChatId);
+        inboxService.receiveLeadMessage(conversation.getId(), text);
+        return true;
+    }
+
+    private boolean processOutboundDialog(Long telegramChatId, String text) {
+        Optional<Dialog> dialogOpt = dialogRepository.findByTelegramChatId(telegramChatId.toString());
+        if (dialogOpt.isEmpty()) {
+            return false;
+        }
+        Dialog dialog = dialogOpt.get();
+        if (dialog.getAiState() != AiState.ACTIVE) {
+            log.info("Outbound Dialog found but AI state is not ACTIVE (current state: {}). No AI turn triggered.", dialog.getAiState());
+            saveInboundMessageGracefully(telegramChatId, text);
+            return true;
+        }
+
+        log.info("Found active outbound Dialog for chat {}. Recording user response and triggering AI next turn.", telegramChatId);
+        handleActiveDialogMessage(dialog, telegramChatId, text);
+        return true;
+    }
+
+    private void saveInboundMessageGracefully(Long telegramChatId, String text) {
+        try {
+            dialogService.receiveInboundMessage(telegramChatId.toString(), text, SenderType.USER);
+        } catch (Exception e) {
+            log.error("Failed to save inbound message for stopped dialog: {}", e.getMessage());
+        }
+    }
+
+    private void handleActiveDialogMessage(Dialog dialog, Long telegramChatId, String text) {
+        try {
+            dialogService.receiveInboundMessage(telegramChatId.toString(), text, SenderType.USER);
+            triggerAiAutomatedResponse(dialog, telegramChatId, text);
+        } catch (Exception e) {
+            log.error("Failed to process outbound dialog inbound message gracefully: {}", e.getMessage());
+        }
+    }
+
+    private void triggerAiAutomatedResponse(Dialog dialog, Long telegramChatId, String text) {
+        // Generate automated AI response (triggers AI evaluation engine)
+        Message aiResponse = new Message(dialog, AI_RESPONSE_PREFIX + text, SenderType.AI);
+        messageRepository.save(aiResponse);
+
+        // Re-evaluate count to check if we hit/exceeded the limit of 8
+        long updatedCount = messageRepository.countByDialogId(dialog.getId());
+        if (updatedCount >= MAX_TURN_LIMIT) {
+            // Perform atomic database update to change AI state to STOPPED
+            int updatedRows = dialogRepository.updateAiStateGuarded(dialog.getId(), AiState.STOPPED, AiState.ACTIVE);
+            if (updatedRows > 0) {
+                log.info("Dialog for chat {} hit turn limit. AI State set to STOPPED atomically.", telegramChatId);
+            } else {
+                log.warn("Failed to update AI State to STOPPED atomically (state was concurrently changed).");
+            }
         }
     }
 }

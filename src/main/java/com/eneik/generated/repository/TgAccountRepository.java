@@ -6,10 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-<<<<<<< HEAD
-=======
 import org.springframework.transaction.annotation.Transactional;
->>>>>>> remotes/origin/jules-6914430892925303110-feda4d3c
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
