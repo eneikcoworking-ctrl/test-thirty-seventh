@@ -1,5 +1,6 @@
 package com.eneik.generated.leadgen.service;
 
+import com.eneik.generated.config.CacheConstants;
 import com.eneik.generated.leadgen.model.Conversation;
 import com.eneik.generated.leadgen.model.ConversationMessage;
 import org.slf4j.Logger;
@@ -23,19 +24,25 @@ import java.util.UUID;
 @Service
 public class InboxService {
 
+    private static final Logger log = LoggerFactory.getLogger(InboxService.class);
+
     private final ConversationRepository conversationRepository;
     private final ConversationMessageRepository conversationMessageRepository;
     private final TelegramBridgeService telegramBridgeService;
+    private final org.springframework.cache.CacheManager cacheManager;
 
     public InboxService(ConversationRepository conversationRepository,
                         ConversationMessageRepository conversationMessageRepository,
-                        TelegramBridgeService telegramBridgeService) {
+                        TelegramBridgeService telegramBridgeService,
+                        org.springframework.cache.CacheManager cacheManager) {
         this.conversationRepository = conversationRepository;
         this.conversationMessageRepository = conversationMessageRepository;
         this.telegramBridgeService = telegramBridgeService;
+        this.cacheManager = cacheManager;
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.CONVERSATIONS)
     public Page<Conversation> getConversations(String status, String assignedAgentId, int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
 
@@ -54,7 +61,7 @@ public class InboxService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "messages", key = "#conversationId", condition = "#beforeMessageId == null")
+    @Cacheable(value = CacheConstants.MESSAGES, key = "#conversationId", condition = "#beforeMessageId == null")
     public List<ConversationMessage> getMessages(String conversationId, int limit, String beforeMessageId) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "sentAt"));
         if (beforeMessageId != null && !beforeMessageId.trim().isEmpty()) {
@@ -65,7 +72,10 @@ public class InboxService {
     }
 
     @Transactional
-    @CacheEvict(value = "messages", key = "#conversationId")
+    @Caching(evict = {
+        @CacheEvict(value = CacheConstants.MESSAGES, key = "#conversationId"),
+        @CacheEvict(value = CacheConstants.CONVERSATIONS, allEntries = true)
+    })
     public ConversationMessage sendManualMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -92,6 +102,8 @@ public class InboxService {
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
 
+        evictConversationCaches();
+
         return savedMessage;
     }
 
@@ -101,7 +113,10 @@ public class InboxService {
      * the lead reply is saved but the AI ignores it (no automated AI response is added).
      */
     @Transactional
-    @CacheEvict(value = "messages", key = "#conversationId")
+    @Caching(evict = {
+        @CacheEvict(value = CacheConstants.MESSAGES, key = "#conversationId"),
+        @CacheEvict(value = CacheConstants.CONVERSATIONS, allEntries = true)
+    })
     public ConversationMessage receiveLeadMessage(String conversationId, String text) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
@@ -152,7 +167,18 @@ public class InboxService {
         conversation.setLastMessageAt(now);
         conversationRepository.save(conversation);
 
+        evictConversationCaches();
+
         return savedLeadMessage;
     }
 
+    public void evictConversationCaches() {
+        if (cacheManager != null) {
+            org.springframework.cache.Cache cache = cacheManager.getCache(CacheConstants.CONVERSATIONS);
+            if (cache != null) {
+                cache.clear();
+                log.info("Actively and immediately cleared conversations list cache programmatically.");
+            }
+        }
+    }
 }
