@@ -1,0 +1,32 @@
+{
+  "gaps": [
+    {
+      "title": "Admin Dashboard Authentication and User Model",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When accessing the SaaS-style admin control panel, I want to authenticate with secure credentials and restrict API access, so that unauthorized users cannot manipulate sensitive Telegram accounts, proxy configurations, or lead data.",
+      "acceptanceCriteria": "Given an unauthorized user trying to view the dashboard or call REST endpoints, When they navigate to the URL or invoke an API, Then the system must redirect them to a login page and block API requests until they successfully authenticate as an admin panel user.",
+      "reason": "literal brief database schema diagram specifies 'Users (Admin Panel Users)' and domain-standard expectation of secure administration of SaaS credentials."
+    },
+    {
+      "title": "Real-time Session Health Monitoring",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When running automated cold outreach, I want the system to dynamically and in real-time monitor and track the health status of connected Telegram accounts (detecting temporary spam-blocks, bans, etc.), so that the platform can automatically adapt campaigns to healthy accounts only.",
+      "acceptanceCriteria": "Given connected Telegram accounts running campaigns, When an account status is updated on Telegram (e.g. gets a spam-block or permanent ban), Then the real-time health monitoring service must immediately detect this change and update the account's status in the database without manual operator database intervention.",
+      "reason": "literal brief requirement: FEAT-ACC-03 explicitly mandates real-time tracking of account status including 'Active', 'Temporary Spam-Block', 'Permanent Ban', or 'Re-authorization Required'."
+    },
+    {
+      "title": "Visual Status Color-Coding",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When viewing the unified inbox, I want to see intuitive color-coded status badges on conversations, so that I can instantly prioritize which leads need manual takeover or human intervention.",
+      "acceptanceCriteria": "Given an operator viewing the unified inbox dashboard, When conversations are loaded, Then they must display distinct color-coded visual tags representing 'AI Active' (Green), 'Human Intervention Required' (Yellow), 'Closed/Converted' (Blue), and 'Spam/Blocked' (Red) corresponding to their underlying conversation state.",
+      "reason": "literal brief requirement: FEAT-CRM-02 explicitly asks for intuitive visual color-coded tagging for conversations."
+    },
+    {
+      "title": "Redis-Backed Task Queues and Rate-Limiting",
+      "roleTag": "BARCAN-TAG-02",
+      "jtbd": "When dispatching high volumes of outreach messages across multiple accounts, I want to use Redis for task queues and rate-limiting, so that the message dispatch workload is efficiently distributed and rate-limited with minimal database overhead.",
+      "acceptanceCriteria": "Given multiple running campaigns, When outbound message actions are dispatched, Then the system must push them onto a Redis-backed queue and use a Redis-backed rate-limiter to enforce the rate limits before executing the actions.",
+      "reason": "literal brief requirement: Tech Stack & Architecture section of the brief specifies the use of Redis for task queues and rate-limiting, which is currently done via relational PostgreSQL/H2 tables or in-memory."
+    }
+  ]
+}
